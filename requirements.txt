@@ -1,0 +1,14 @@
+# Core dependencies
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Optional AI / LLM Framework dependencies (uncomment as needed)
+# openai>=1.0.0
+# langchain>=0.1.0
+
+# Testing and Code Quality
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.1.0
