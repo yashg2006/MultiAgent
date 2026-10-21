@@ -32,3 +32,12 @@ export function listTasks(): Promise<Task[]> {
 export function getTask(id: string): Promise<Task> {
   return request<Task>(`/tasks/${encodeURIComponent(id)}`);
 }
+
+export function cancelTask(id: string): Promise<Task> {
+  return request<Task>(`/tasks/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+}
+
+/** URL of a run's live step stream (Server-Sent Events). */
+export function taskEventsUrl(id: string): string {
+  return `${API_URL}/tasks/${encodeURIComponent(id)}/events`;
+}

@@ -1,50 +1,10 @@
 """
-Tests for the FastAPI layer (Phase D).
+Tests for the FastAPI layer.
 
-Uses FastAPI's TestClient (httpx) against an isolated, temporary SQLite
-database so these tests never touch a developer's real tasks.db and can
-run in parallel with other test runs.
-
-NOTE ON VERIFICATION: unlike Phases B/C, these tests could not be executed
-in the sandbox used to write this phase (fastapi/sqlalchemy/httpx are not
-installed and the sandbox has no outbound network access to install them).
-They are written to the same standard as the rest of the suite and are
-expected to pass in CI or on a contributor's machine with network access;
-treat the first real run's result as the actual verification record.
+Each test gets a freshly migrated database (see tests/conftest.py) and runs
+tasks inline: FastAPI's TestClient executes background tasks before a request
+returns, so a task created with POST /tasks has finished by the next call.
 """
-
-import os
-import tempfile
-
-import pytest
-from fastapi.testclient import TestClient
-
-
-@pytest.fixture()
-def client():
-    """A TestClient backed by a fresh, temporary SQLite file per test."""
-    db_fd, db_path = tempfile.mkstemp(suffix=".db")
-    os.close(db_fd)
-    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-
-    # Imported after DATABASE_URL is set, so the module-level engine picks it up.
-    import importlib
-
-    from src.shared import db as db_module
-
-    importlib.reload(db_module)
-    from src.api import routes as routes_module
-
-    importlib.reload(routes_module)
-    from src.api import main as main_module
-
-    importlib.reload(main_module)
-
-    with TestClient(main_module.app) as test_client:
-        yield test_client
-
-    os.remove(db_path)
-    del os.environ["DATABASE_URL"]
 
 
 def test_health_endpoint(client):
@@ -115,3 +75,116 @@ def test_completed_task_reports_usage_totals(client):
     assert body["usage"]["calls"] == 5
     assert body["usage"]["cost_usd"] == 0
     assert all("usage" in step for step in body["steps"])
+
+
+# --- Phase F2: validation, steps, live events, cancel, readiness ----------------
+
+import json  # noqa: E402
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("bad", ["   ", "x" * 2001])
+def test_create_task_rejects_blank_or_overlong_input(client, bad):
+    assert client.post("/tasks", json={"task": bad}).status_code == 422
+
+
+def test_create_task_trims_whitespace(client):
+    body = client.post("/tasks", json={"task": "  Summarize EDF  "}).json()
+    assert body["input_task"] == "Summarize EDF"
+
+
+def test_get_task_returns_steps_in_order_with_sequence_numbers(client):
+    task_id = client.post("/tasks", json={"task": "Summarize EDF"}).json()["id"]
+    steps = client.get(f"/tasks/{task_id}").json()["steps"]
+    assert [s["seq"] for s in steps] == list(range(1, len(steps) + 1))
+    assert [s["step_name"] for s in steps] == [
+        "planner",
+        "research",
+        "research",
+        "research",
+        "validator",
+    ]
+
+
+def test_list_tasks_omits_step_detail(client):
+    client.post("/tasks", json={"task": "Summarize EDF"})
+    assert client.get("/tasks").json()[0]["steps"] is None
+
+
+def parse_sse(text):
+    events = []
+    for block in text.strip().split("\n\n"):
+        fields = {}
+        for line in block.splitlines():
+            if line.startswith(":") or ":" not in line:
+                continue
+            key, _, value = line.partition(":")
+            fields[key] = value.strip()
+        if "event" in fields:
+            events.append(fields)
+    return events
+
+
+def test_event_stream_replays_steps_then_reports_done(client):
+    task_id = client.post("/tasks", json={"task": "Summarize EDF"}).json()["id"]
+    with client.stream("GET", f"/tasks/{task_id}/events") as response:
+        assert response.headers["content-type"].startswith("text/event-stream")
+        events = parse_sse(response.read().decode())
+    kinds = [e["event"] for e in events]
+    assert kinds == ["step"] * 5 + ["status", "done"]
+    assert [e["id"] for e in events[:5]] == ["1", "2", "3", "4", "5"]
+    assert json.loads(events[-1]["data"])["status"] == "success"
+
+
+def test_event_stream_resumes_after_last_event_id(client):
+    task_id = client.post("/tasks", json={"task": "Summarize EDF"}).json()["id"]
+    with client.stream(
+        "GET", f"/tasks/{task_id}/events", headers={"Last-Event-ID": "3"}
+    ) as response:
+        events = parse_sse(response.read().decode())
+    assert [e["id"] for e in events if e["event"] == "step"] == ["4", "5"]
+
+
+def test_event_stream_for_unknown_task_is_404(client):
+    assert client.get("/tasks/nope/events").status_code == 404
+
+
+def test_cancel_unknown_task_is_404(client):
+    assert client.post("/tasks/nope/cancel").status_code == 404
+
+
+def test_cancel_finished_task_is_409(client):
+    task_id = client.post("/tasks", json={"task": "Summarize EDF"}).json()["id"]
+    response = client.post(f"/tasks/{task_id}/cancel")
+    assert response.status_code == 409
+    assert "already finished" in response.json()["detail"]
+
+
+def test_cancel_queued_task_sets_flag(client):
+    from src.shared.db import TaskRecord, session_scope
+
+    with session_scope() as session:
+        session.add(TaskRecord(id="queued-1", input_task="later", status="pending"))
+    response = client.post("/tasks/queued-1/cancel")
+    assert response.status_code == 202
+    assert response.json()["cancel_requested"] is True
+
+
+def test_ready_reports_database_and_queue(client):
+    response = client.get("/ready")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready", "database": "ok", "queue": "ok"}
+
+
+def test_ready_returns_503_when_database_is_unreachable(client, monkeypatch):
+    from src.api import main
+
+    class BrokenEngine:
+        def connect(self):
+            raise OSError("connection refused")
+
+    monkeypatch.setattr(main, "get_engine", lambda: BrokenEngine())
+    response = client.get("/ready")
+    assert response.status_code == 503
+    assert response.json()["database"] == "unavailable"

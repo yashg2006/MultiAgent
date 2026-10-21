@@ -191,6 +191,23 @@ fake Anthropic SDK module. Backend suite: 107 test functions; frontend: 21/21.
 | API-08 | API (`test_api.py`) | Completed task reports usage totals (Mock: 5 calls, $0) | Pass |
 | FE-18..21 | Frontend (`usage.test.ts`) | Usage wording: none, calls-only for Mock, retries/tokens/cost, tiny costs shown as "under $0.01" | Pass |
 
+### 3.7e Infrastructure Test Cases (Phase F2)
+
+From CI run [39626141696](https://github.com/yashg2006/MultiAgent/actions/runs/39626141696)
+(PR #5): all pass. The database and queue suites ran twice — on SQLite, and
+again on Postgres 16 with Redis 7 service containers (**35/35 passed, 0
+skipped**, including the real Redis round trip). Backend: 133 test functions;
+frontend: 27/27.
+
+| Test ID | Area (file) | What is verified | Status |
+|---------|-------------|------------------|--------|
+| MIG-01..02 | Migrations (`test_migrations.py`) | `alembic check` finds no drift between models and migrations; downgrade to base removes the tables and upgrade restores them | Pass |
+| WRK-01..07 | Pipeline runner (`test_worker.py`) | Runs and persists steps (seq 1..5) and result; steps visible while the run is still `running`; cancelled-while-queued never starts; cancel mid-run stops between stages; second delivery is a no-op; unknown task ignored; crash recorded as `error` | Pass |
+| WRK-08..11 | Queue (`test_worker.py`) | arq job function runs a task; inline queue schedules after the response; Redis queue enqueues with job id = task id, reports health, closes; unknown backend rejected | Pass |
+| WRK-12 | Redis round trip (`test_worker.py`, integration pass only) | Enqueue twice → Redis → arq worker (burst) → task `success` with 5 steps (duplicate ignored) | Pass |
+| API-09..21 | API (`test_api.py`) | Blank/over-long input → 422; input trimmed; steps returned in order with seq; list omits steps; SSE replays steps then `status` and `done`; resume after `Last-Event-ID`; 404 for unknown stream/cancel; 409 cancelling a finished run; cancel sets the flag on a queued run; `/ready` 200, and 503 when the database is unreachable | Pass |
+| FE-22..27 | Frontend (`useTaskStream.test.tsx`, `RunTrace.test.tsx`) | Stream opens the run's URL and merges steps without duplicates; status and done applied, stream closed; reconnecting state; closed on disable/unmount; empty live trace; no "retries exhausted" claim while live | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
@@ -225,9 +242,13 @@ fake Anthropic SDK module. Backend suite: 107 test functions; frontend: 21/21.
 
 ## 6. Code Coverage — Target vs. Measured
 
-Latest measurement: `pytest --cov=src` in CI run
+Table below: CI run
 [39623939397](https://github.com/yashg2006/MultiAgent/actions/runs/39623939397)
-(PR #4, Phase F1). Per-area figures are aggregated from CI's per-file report.
+(PR #4, Phase F1). Latest: run
+[39626141696](https://github.com/yashg2006/MultiAgent/actions/runs/39626141696)
+(PR #5, Phase F2) measured **97% overall (1068 statements, 28 missed)**; the new
+modules: `src/api/` 94.2% (224 / 13), `src/worker/` 95.9% (73 / 3),
+`src/shared/db.py` 100% (78 / 0). Per-area figures are aggregated from CI's per-file report.
 
 | Module | Target | Measured (statements / missed) | Met? |
 |--------|--------|-------------------------------|------|
@@ -270,3 +291,4 @@ handler in `src/api/routes.py`.
 | 1.0 | [DD/MM/YYYY] | [Student Name 3] | Initial test plan |
 | 1.1 | 21/10/2026 | Yash Gharat (with Claude Code) | Filled test-case results from CI; added API (§3.7a) and LLM provider (§3.7b) cases; recorded measured coverage (§6) |
 | 1.2 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase E (§3.7c) and Phase F1 (§3.7d) cases; coverage refreshed to 97.5% |
+| 1.3 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F2 infrastructure cases (§3.7e), incl. Postgres/Redis integration pass |

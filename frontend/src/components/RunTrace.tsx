@@ -60,9 +60,9 @@ function StepRow({ step, maxLatency }: { step: RunStep; maxLatency: number }) {
   );
 }
 
-export function RunTrace({ steps }: { steps: RunStep[] }) {
+export function RunTrace({ steps, live = false }: { steps: RunStep[]; live?: boolean }) {
   if (steps.length === 0) {
-    return <p className="text-sm text-steel">The step trace appears when the run finishes.</p>;
+    return live ? null : <p className="text-sm text-steel">This run recorded no steps.</p>;
   }
   const maxLatency = Math.max(...steps.map((s) => s.latency_seconds));
   const { planner, attempts } = groupSteps(steps);
@@ -82,7 +82,9 @@ export function RunTrace({ steps }: { steps: RunStep[] }) {
               <span className="ml-2 font-normal text-partial">
                 {i < attempts.length - 1
                   ? "rejected by validator, retried"
-                  : "rejected by validator, no retries left"}
+                  : live
+                    ? "rejected by validator"
+                    : "rejected by validator, no retries left"}
               </span>
             )}
           </h4>

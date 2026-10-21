@@ -2,10 +2,11 @@ import { useParams } from "react-router-dom";
 
 import { RunTrace } from "../components/RunTrace";
 import { StatusBadge } from "../components/StatusBadge";
-import { useTask } from "../hooks/useTasks";
+import { useCancelTask, useTask } from "../hooks/useTasks";
+import { useTaskStream } from "../hooks/useTaskStream";
 import { taskToMarkdown } from "../markdown";
 import { formatApiTime } from "../time";
-import type { Task } from "../types";
+import { isActive, type Task } from "../types";
 import { describeUsage } from "../usage";
 
 function downloadMarkdown(task: Task) {
@@ -27,6 +28,9 @@ const PROBLEM_HEADING: Record<string, string> = {
 export function TaskPage() {
   const { id = "" } = useParams();
   const { data: task, isPending, isError, error } = useTask(id);
+  const active = task !== undefined && isActive(task.status);
+  const stream = useTaskStream(id, active);
+  const cancel = useCancelTask(id);
 
   if (isPending) return <p className="text-sm text-steel">Loading run…</p>;
   if (isError) {
@@ -38,7 +42,7 @@ export function TaskPage() {
   }
 
   const findings = Object.entries(task.result ?? {});
-  const finished = task.status !== "pending";
+  const finished = !active;
 
   return (
     <article className="space-y-8">
@@ -58,6 +62,28 @@ export function TaskPage() {
         <h2 className="max-w-[60ch] text-2xl font-semibold leading-snug text-ink">
           {task.input_task}
         </h2>
+        {active && (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => cancel.mutate()}
+              disabled={task.cancel_requested || cancel.isPending}
+              className="rounded-md border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink hover:border-fail hover:text-fail focus-visible:outline focus-visible:outline-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {task.cancel_requested ? "Stopping…" : "Cancel run"}
+            </button>
+            {task.cancel_requested && (
+              <span className="text-xs text-steel">
+                The run stops after the step in progress; finished work is kept.
+              </span>
+            )}
+            {cancel.isError && (
+              <span role="alert" className="text-xs text-fail">
+                Couldn't cancel: {cancel.error.message}
+              </span>
+            )}
+          </div>
+        )}
         {finished && (
           <button
             type="button"
@@ -80,13 +106,16 @@ export function TaskPage() {
 
       <section>
         <h3 className="mb-3 text-base font-semibold text-ink">How the agents ran</h3>
-        {task.status === "pending" ? (
-          <p className="text-sm text-steel">
-            The planner, research, and validator agents are working. This page updates on its own.
+        {active && (
+          <p className="mb-3 text-sm text-steel" aria-live="polite">
+            {task.status === "pending"
+              ? "Queued. The agents start as soon as a worker is free."
+              : stream === "reconnecting"
+                ? "Connection lost; reconnecting. Steps that finish meanwhile will still appear."
+                : "The agents are working. Steps appear here as they finish."}
           </p>
-        ) : (
-          <RunTrace steps={task.steps ?? []} />
         )}
+        <RunTrace steps={task.steps ?? []} live={active} />
       </section>
 
       {findings.length > 0 && (

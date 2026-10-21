@@ -1,5 +1,17 @@
 /** Mirrors `TaskOut` in src/api/schemas.py. */
-export type TaskStatus = "pending" | "success" | "partial" | "error" | "cancelled";
+export type TaskStatus = "pending" | "running" | "success" | "partial" | "error" | "cancelled";
+
+/** Statuses after which a run never changes. */
+export const FINISHED_STATUSES: ReadonlySet<string> = new Set([
+  "success",
+  "partial",
+  "error",
+  "cancelled",
+]);
+
+export function isActive(status: string): boolean {
+  return !FINISHED_STATUSES.has(status);
+}
 
 /** Mirrors `LLMUsage` in src/shared/schemas.py. */
 export interface Usage {
@@ -12,6 +24,8 @@ export interface Usage {
 
 /** Mirrors `RunStep` in src/shared/schemas.py. Agents report "rejected" too. */
 export interface RunStep {
+  /** Order in which the step finished, from 1. */
+  seq?: number;
   step_name: string;
   status: string;
   latency_seconds: number;
@@ -39,6 +53,7 @@ export interface Task {
   result: Record<string, SubTaskResult> | null;
   error: string | null;
   retries_used: number | null;
+  cancel_requested?: boolean;
   steps: RunStep[] | null;
   usage?: Usage | null;
   created_at: string;

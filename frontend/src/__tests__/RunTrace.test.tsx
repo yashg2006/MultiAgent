@@ -66,8 +66,16 @@ describe("RunTrace", () => {
     expect(screen.getByText("simulated agent crash")).toBeInTheDocument();
   });
 
-  it("explains the empty state", () => {
+  it("explains an empty finished run, and renders nothing while live", () => {
     render(<RunTrace steps={[]} />);
-    expect(screen.getByText(/appears when the run finishes/)).toBeInTheDocument();
+    expect(screen.getByText("This run recorded no steps.")).toBeInTheDocument();
+    const { container } = render(<RunTrace steps={[]} live />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("doesn't claim retries are exhausted while the run is still going", () => {
+    render(<RunTrace steps={retriedRun.slice(0, 4)} live />);
+    expect(screen.getByText("rejected by validator")).toBeInTheDocument();
+    expect(screen.queryByText(/no retries left/)).not.toBeInTheDocument();
   });
 });

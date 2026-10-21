@@ -52,9 +52,12 @@ made and what they cost. All options are listed in `.env.example`.
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/tasks` | Start a run: `{"task": "..."}`. Returns immediately with `status: "pending"`. |
-| `GET` | `/tasks/{id}` | A run's status, findings, retry count, and step trace. |
+| `GET` | `/tasks/{id}` | A run's status, findings, retry count, usage, and steps so far. |
+| `GET` | `/tasks/{id}/events` | Live step stream (Server-Sent Events); resumes with `Last-Event-ID`. |
+| `POST` | `/tasks/{id}/cancel` | Stop a queued or running run after its current step (409 if finished). |
 | `GET` | `/tasks` | Recent runs, newest first. |
 | `GET` | `/health` | Liveness check. |
+| `GET` | `/ready` | Readiness: database and queue reachable (503 otherwise). |
 
 ## Configuration
 
@@ -68,7 +71,10 @@ made and what they cost. All options are listed in `.env.example`.
 | `MAX_RETRIES` | `3` | Validation attempts before returning a partial result |
 | `JUDGE_THRESHOLD` | `0.6` | Minimum 0–1 quality score from the validator's LLM judge |
 | `LLM_MAX_ATTEMPTS` | `3` | Attempts per model call on transient errors (with backoff) |
-| `DATABASE_URL` | `sqlite:///./tasks.db` | Where runs are stored |
+| `DATABASE_URL` | `sqlite:///./tasks.db` | Where runs are stored (Postgres: `postgresql+psycopg://...`) |
+| `QUEUE_BACKEND` | `inline` | `inline` runs tasks in the API process; `redis` hands them to workers |
+| `REDIS_URL` | `redis://localhost:6379/0` | Redis for `QUEUE_BACKEND=redis` |
+| `AUTO_MIGRATE` | `true` | Apply database migrations when the API starts |
 | `CORS_ORIGINS` | `http://localhost:5173` | Browser origins allowed to call the API (comma-separated) |
 | `VITE_API_URL` | (empty) | Frontend only: API base URL for a deployed build; the dev server proxies to port 8000 |
 
@@ -80,7 +86,22 @@ cd frontend && npm test           # frontend
 ```
 
 CI runs lint (ruff, black), type checks (mypy, tsc), both test suites, and a
-production frontend build on every pull request, and posts coverage on the PR.
+production frontend build on every pull request, then re-runs the database and
+queue tests against real Postgres and Redis, and posts coverage on the PR.
+
+## Running with workers
+
+By default tasks run inside the API process. To run them on separate workers
+(what production uses), start Redis and set `QUEUE_BACKEND=redis` for both
+processes:
+
+```bash
+uvicorn src.api.main:app            # API
+arq src.worker.main.WorkerSettings  # one or more workers
+```
+
+The schema is managed by Alembic (`migrations/`); `alembic upgrade head`
+applies it, and the API does so on startup unless `AUTO_MIGRATE=false`.
 Measured results are recorded in [`docs/test_plan.md`](docs/test_plan.md).
 
 ## Repository layout
