@@ -3,6 +3,7 @@ Research Agent implementation.
 Responsible for fetching context, web searching, and data retrieval.
 """
 
+
 class ResearchAgent:
     def __init__(self, config=None):
         self.config = config

@@ -3,6 +3,7 @@ Main Pipeline Orchestrator module.
 Coordinates agent workflows, task distribution, and state progression.
 """
 
+
 # Scaffolding placeholder for orchestrator implementation
 class Orchestrator:
     def __init__(self):
