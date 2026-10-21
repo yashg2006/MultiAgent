@@ -14,7 +14,7 @@ export function TaskComposer() {
     createTask.mutate(text.trim(), {
       onSuccess: (task) => {
         setText("");
-        navigate(`/tasks/${task.id}`);
+        navigate(`/runs/${task.id}`);
       },
     });
   }
