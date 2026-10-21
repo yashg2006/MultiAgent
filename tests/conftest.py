@@ -43,14 +43,28 @@ def database_url(tmp_path, monkeypatch):
         _downgrade_all(url)
 
 
+TEST_PASSWORD = "correct horse battery"
+
+
 @pytest.fixture()
-def client(database_url, monkeypatch):
-    """A TestClient running tasks inline, against the per-test database."""
+def anon_client(database_url, monkeypatch):
+    """A signed-out TestClient running tasks inline, against the per-test database."""
     from fastapi.testclient import TestClient
 
     from src.api.main import app
 
     monkeypatch.setattr(settings, "queue_backend", "inline")
     monkeypatch.setattr(settings, "sse_poll_seconds", 0.01)
+    monkeypatch.setattr(settings, "jwt_secret", "test-secret-not-for-production")
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture()
+def client(anon_client):
+    """Signed in as a freshly registered user (session cookie in the jar)."""
+    response = anon_client.post(
+        "/auth/register", json={"email": "ada@example.com", "password": TEST_PASSWORD}
+    )
+    assert response.status_code == 201, response.text
+    return anon_client

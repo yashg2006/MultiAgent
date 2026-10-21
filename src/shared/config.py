@@ -67,5 +67,19 @@ class Settings(BaseSettings):
     sse_poll_seconds: float = 0.5
     sse_keepalive_seconds: float = 15.0
 
+    # --- Auth ----------------------------------------------------------------
+    # Signing key for session tokens. Required when ENV=production; in
+    # development a random key is generated per process (sessions then end
+    # whenever the API restarts).
+    jwt_secret: str = ""
+    jwt_expire_minutes: int = 720
+    # Send the session cookie over HTTPS only. Turn on behind TLS.
+    cookie_secure: bool = False
+    # Requests per minute: sign-in/registration per client IP, new runs per user.
+    auth_rate_limit_per_minute: int = 10
+    task_rate_limit_per_minute: int = 20
+    # Take the client IP from X-Forwarded-For (only behind a trusted proxy).
+    trust_proxy_headers: bool = False
+
 
 settings = Settings()

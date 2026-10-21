@@ -28,7 +28,7 @@ export function useTaskStream(id: string, enabled: boolean): StreamState {
       setState("closed");
       return;
     }
-    const source = new EventSource(taskEventsUrl(id));
+    const source = new EventSource(taskEventsUrl(id), { withCredentials: true });
     setState("connecting");
 
     const update = (fn: (task: Task) => Task) =>

@@ -7,7 +7,8 @@ choice is only `DATABASE_URL`. The schema is owned by Alembic migrations in
 migrations must stay in sync; CI runs `alembic check` to catch drift.
 
 Tables:
-- `tasks`: one row per run (input, status, final result, cancel flag).
+- `users`: accounts (email + bcrypt password hash).
+- `tasks`: one row per run (owner, input, status, final result, cancel flag).
 - `run_steps`: one row per agent step, written as each step finishes, which
   is what the live event stream reads.
 """
@@ -51,6 +52,20 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserRecord(Base):
+    """An account. Emails are stored lower-cased; only a bcrypt hash of the
+    password is kept."""
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+
 class TaskRecord(Base):
     """A single orchestrator run.
 
@@ -60,6 +75,10 @@ class TaskRecord(Base):
     __tablename__ = "tasks"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    # Owner. Nullable only for runs created before accounts existed.
+    user_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     input_task: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
     result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

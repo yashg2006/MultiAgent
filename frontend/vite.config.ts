@@ -2,7 +2,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// In development, /tasks and /health are proxied to the FastAPI server so the
+// In development, /tasks, /auth and /health are proxied to the FastAPI server so the
 // browser talks to one origin. In a deployed build, set VITE_API_URL instead.
 export default defineConfig({
   plugins: [react()],
@@ -10,6 +10,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/tasks": "http://localhost:8000",
+      "/auth": "http://localhost:8000",
       "/health": "http://localhost:8000",
     },
   },

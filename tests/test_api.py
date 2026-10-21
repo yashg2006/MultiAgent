@@ -164,8 +164,11 @@ def test_cancel_finished_task_is_409(client):
 def test_cancel_queued_task_sets_flag(client):
     from src.shared.db import TaskRecord, session_scope
 
+    user_id = client.get("/auth/me").json()["id"]
     with session_scope() as session:
-        session.add(TaskRecord(id="queued-1", input_task="later", status="pending"))
+        session.add(
+            TaskRecord(id="queued-1", user_id=user_id, input_task="later", status="pending")
+        )
     response = client.post("/tasks/queued-1/cancel")
     assert response.status_code == 202
     assert response.json()["cancel_requested"] is True
