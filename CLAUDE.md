@@ -22,7 +22,9 @@ User task → Orchestrator → Planner Agent (decompose into sub-tasks)
   `AgentResponse` and friends), `config.py` (env-based settings), `utils.py`
   (logging), `llm_provider.py` (LLM abstraction + offline Mock provider),
   `retry.py` (backoff helper).
-- `src/api/` — FastAPI app exposing the pipeline over HTTP (added in Phase D).
+- `src/api/` — FastAPI app: tasks, live SSE step stream, cancel, readiness.
+- `src/worker/` — `execute_task` (shared by inline mode and arq workers).
+- `migrations/` — Alembic schema history; `src/shared/db.py` holds the models.
 - `frontend/` — React + TypeScript + Vite + Tailwind UI (added in Phase E).
 
 New agents are added under `src/agents/<name>/`, implement the `Agent` base
@@ -41,7 +43,10 @@ pytest --cov=src            # with coverage
 ruff check .                # lint
 black --check .             # format check (black . to auto-format)
 mypy src                    # type check
-uvicorn src.api.main:app --reload   # API on :8000
+uvicorn src.api.main:app --reload   # API on :8000 (runs tasks inline by default)
+arq src.worker.main.WorkerSettings  # worker, with QUEUE_BACKEND=redis
+alembic upgrade head        # apply migrations; add a new file in migrations/versions
+                            # for every model change (tests run `alembic check`)
 
 cd frontend && npm install  # frontend deps (Node 20+)
 npm run dev                 # UI on :5173, proxies /tasks and /health to :8000

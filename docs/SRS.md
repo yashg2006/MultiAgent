@@ -142,12 +142,23 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | FR-S-02 | A centralised logger utility shall be available to all modules. | Medium |
 | FR-S-03 | Application configuration shall be loaded from environment variables via `.env` file. | High |
 
+#### 3.1.6 API and Execution
+
+| Req ID | Requirement | Priority |
+|--------|-------------|----------|
+| FR-A-01 | `POST /tasks` shall validate the goal (trimmed, non-empty, at most 2000 characters), store it as `pending`, hand it to the task queue, and return immediately. | High |
+| FR-A-02 | Runs shall execute either in the API process (`QUEUE_BACKEND=inline`) or on separate worker processes via a Redis queue (`QUEUE_BACKEND=redis`); a run delivered twice shall execute once. | High |
+| FR-A-03 | Each agent step shall be persisted as soon as it finishes, and `GET /tasks/{id}/events` shall stream steps and status changes as Server-Sent Events, resuming after `Last-Event-ID` on reconnect. | High |
+| FR-A-04 | `POST /tasks/{id}/cancel` shall stop a queued or running run between stages, keeping finished work; cancelling a finished run shall return HTTP 409. | Medium |
+| FR-A-05 | `GET /ready` shall report whether the database and queue are reachable (HTTP 503 if not); `GET /health` reports liveness only. | Medium |
+| FR-A-06 | The database schema shall be versioned with Alembic migrations that can be applied and reversed. | Medium |
+
 ### 3.2 Non-Functional Requirements
 
 | Req ID | Category | Requirement |
 |--------|----------|-------------|
 | NFR-01 | **Performance** | With the Mock LLM provider (no network I/O), individual agent execution shall complete in well under 1 second. With a real LLM provider, per-agent latency is bounded by that provider's own response time plus the orchestrator's retry policy (`max_retries`, default 3, exponential backoff from `retry_base_delay_seconds`, default 0.5s — see `src/shared/config.py`), not by this system's own processing. Actual measured values are recorded in `docs/project_report.md §7.2` once benchmarking is run. |
-| NFR-02 | **Scalability** | The architecture shall support addition of new agent types without modifying the orchestrator core logic. |
+| NFR-02 | **Scalability** | The architecture shall support addition of new agent types without modifying the orchestrator core logic. The API shall be stateless (all state in the database and queue), so API instances and worker processes can be scaled independently. |
 | NFR-03 | **Reliability** | Every LLM call shall be retried on transient errors only (connection/timeout, HTTP 429, HTTP 5xx) up to `LLM_MAX_ATTEMPTS` (default 3) with exponential backoff and jitter, and shall pass through a circuit breaker that fails fast for `CIRCUIT_RESET_SECONDS` (default 30) after `CIRCUIT_FAILURE_THRESHOLD` (default 5) consecutive failures. Each call has a timeout (`LLM_TIMEOUT_SECONDS`, default 60). |
 | NFR-04 | **Maintainability** | All source code shall follow PEP 8 standards and include module-level and function-level docstrings. |
 | NFR-05 | **Security** | API keys, tokens, and secrets shall be supplied only through environment variables (`.env`, excluded via `.gitignore`, or CI secrets) and never committed or logged. |

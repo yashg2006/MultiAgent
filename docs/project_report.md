@@ -319,25 +319,38 @@ classDiagram
 
 Inter-agent data transfer within a single pipeline run uses in-memory Pydantic
 schemas (`AgentRequest`, `AgentResponse`, `RunResult`) as described above.
-Phase D adds a persistence layer for the HTTP API (`src/shared/db.py`): a
-single-table SQLite schema (SQLAlchemy ORM) storing one row per orchestrator
-run.
+The API persists runs with SQLAlchemy (`src/shared/db.py`) in SQLite for
+development and Postgres in deployment. The schema is versioned with Alembic
+(`migrations/`), and a test fails if the models and migrations disagree.
+
+**`tasks`** — one row per orchestrator run:
 
 | Column | Type | Description |
 |--------|------|--------------|
 | `id` | String (PK) | UUID identifying the run; returned to the API client. |
 | `input_task` | String | The original task string submitted. |
-| `status` | String | `pending` / `success` / `partial` / `error`. |
+| `status` | String | `pending` (queued) → `running` → `success` / `partial` / `error` / `cancelled`. |
 | `result_json` | JSON | The aggregated result dict (null until the run completes). |
 | `error` | String | Error or partial-failure explanation, if any. |
 | `retries_used` | Integer | How many validation-retry cycles ran. |
-| `steps_json` | JSON | Full step trace (agent name, status, latency, detail) for debugging. |
-| `created_at` / `updated_at` | DateTime | Timestamps, auto-managed. |
+| `cancel_requested` | Boolean | Set by `POST /tasks/{id}/cancel`; checked by the run between stages. |
+| `created_at` / `updated_at` | DateTime (tz) | Timestamps, auto-managed; `created_at` indexed for listing. |
 
-SQLite was chosen over Postgres for this phase for zero-setup local/CI use;
-no application code depends on SQLite specifically; a Postgres connection
-string could be swapped in via `DATABASE_URL` without further changes, if
-ever wanted.
+**`run_steps`** — one row per agent step, written as the step finishes (this is
+what the live event stream reads):
+
+| Column | Type | Description |
+|--------|------|--------------|
+| `id` | Integer (PK) | Surrogate key. |
+| `task_id` | String (FK → tasks.id, cascade delete, indexed) | Owning run. |
+| `seq` | Integer | Order the step finished in (1, 2, …); unique per task; used as the SSE event id. |
+| `step_name`, `status` | String | Agent (`planner`/`research`/`validator`) and outcome. |
+| `latency_seconds` | Float | Wall-clock time of the step. |
+| `sub_task_id` | String | Which sub-task a research step belongs to. |
+| `detail`, `usage` | JSON | Error detail; LLM calls/retries/tokens/cost. |
+
+SQLite needs no setup for development and tests; Postgres is used in Docker
+Compose, and CI runs the database tests against both.
 
 ---
 
