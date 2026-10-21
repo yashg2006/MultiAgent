@@ -59,3 +59,45 @@ jobs:
       with:
         name: coverage-report
         path: coverage.xml
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    # No lockfile is committed yet (the first dev environment had no npm
+    # registry access); package.json pins exact versions, so `npm install` is
+    # reproducible enough until a package-lock.json is added.
+    - name: Install dependencies
+      run: npm install --no-audit --no-fund
+
+    # Failures are re-emitted as annotations so they show on the PR page.
+    - name: Type check (tsc)
+      run: |
+        if ! npx tsc --noEmit --pretty false > tsc.txt 2>&1; then
+          head -30 tsc.txt | sed 's/%/%25/g; s/^/::error title=tsc::/'
+          exit 1
+        fi
+
+    - name: Unit tests (vitest)
+      run: |
+        npx vitest run --reporter=default --reporter=github-actions --reporter=json --outputFile=vitest.json
+        node -e "const r=require('./vitest.json'); console.log('::notice title=Frontend tests::' + r.numPassedTests + '/' + r.numTotalTests + ' passed')"
+
+    - name: Production build (vite)
+      run: |
+        if ! npx vite build > build.txt 2>&1; then
+          tail -30 build.txt | sed 's/%/%25/g; s/^/::error title=vite build::/'
+          exit 1
+        fi
+        tail -8 build.txt | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::notice title=Build output::/'
