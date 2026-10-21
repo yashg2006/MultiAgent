@@ -15,9 +15,10 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from typing import Any
 
-from sqlalchemy import JSON, Column, DateTime, Integer, String, create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import JSON, DateTime, String, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tasks.db")
 
@@ -35,15 +36,20 @@ class TaskRecord(Base):
 
     __tablename__ = "tasks"
 
-    id = Column(String, primary_key=True)
-    input_task = Column(String, nullable=False)
-    status = Column(String, nullable=False, default="pending")
-    result_json = Column(JSON, nullable=True)
-    error = Column(String, nullable=True)
-    retries_used = Column(Integer, nullable=True)
-    steps_json = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(
+    # SQLAlchemy 2.0 typed declarations: `Mapped[...]` makes instance attributes
+    # type as plain Python values (str, int, ...) rather than `Column[...]`, which
+    # is what lets mypy check assignments like `record.status = "success"`.
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    input_task: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(String, nullable=True)
+    retries_used: Mapped[int | None] = mapped_column(nullable=True)
+    steps_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
@@ -60,6 +66,9 @@ def get_session() -> Session:
     return SessionLocal()
 
 
-def serialize_steps(steps: list) -> list[dict]:
+def serialize_steps(steps: list[Any]) -> list[dict[str, Any]]:
     """Convert a list of RunStep (Pydantic) models to plain JSON-able dicts."""
-    return json.loads(json.dumps([s.model_dump() for s in steps], default=str))
+    serialized: list[dict[str, Any]] = json.loads(
+        json.dumps([s.model_dump() for s in steps], default=str)
+    )
+    return serialized
