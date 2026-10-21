@@ -66,67 +66,76 @@ This document defines the test plan, test strategy, and test cases for the Multi
 
 ## 3. Test Cases
 
+> **Verification note:** The repo's own dev sandbox used to prepare this phase had no
+> outbound internet access, so `pytest` itself could not be installed/run here. Every
+> row below was instead verified by direct execution of the real source against a
+> locally-stubbed `pydantic-settings` shim (the only missing dependency) — i.e. the
+> actual `Orchestrator`/`Agent`/`retry` code ran, not a hand-simulated version. The
+> automated `pytest` suite in `tests/` encodes these same cases and will re-confirm
+> them (and report real coverage, see §6.3) the first time CI or a contributor with
+> network access runs it — expected to simply reproduce what's recorded here.
+
 ### 3.1 Unit Test Cases — Orchestrator
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| UT-O-01 | Orchestrator initialises without errors | N/A | `Orchestrator` object is created successfully | [Fill] | [Pass/Fail] |
-| UT-O-02 | `run()` returns a dict result for a valid task | `"sample task"` | Dict with result data | [Fill] | [Pass/Fail] |
-| UT-O-03 | `run()` handles empty input gracefully | `""` | Error message or empty result | [Fill] | [Pass/Fail] |
-| UT-O-04 | Retry logic triggers on agent failure | Simulated agent exception | Retry up to 3 times, then error | [Fill] | [Pass/Fail] |
+| UT-O-01 | Orchestrator initialises without errors | N/A | `Orchestrator` object created, `agents` = {planner, research, validator} | Matched | Pass |
+| UT-O-02 | `run()` returns a successful `RunResult` for a valid task | `"sample task"` | `RunResult(status="success", result={...})` | `status="success"`, 3 sub-task results, `retries_used=0` | Pass |
+| UT-O-03 | `run()` handles empty input gracefully | `""` | Error, not a crash | `status="error"`, `error="input_task must not be empty."` | Pass |
+| UT-O-04 | Retry logic triggers on validator rejection | Always-failing Validator double, `max_retries=2` | Retry twice, then `status="partial"` | `status="partial"`, `retries_used=2`, reasons preserved | Pass |
 
 ### 3.2 Unit Test Cases — Research Agent
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| UT-R-01 | `execute()` returns dict with `status` key | `"test query"` | `{"status": ..., "query": "test query"}` | [Fill] | [Pass/Fail] |
-| UT-R-02 | `execute()` handles empty query | `""` | Dict with error or empty result | [Fill] | [Pass/Fail] |
-| UT-R-03 | Agent initialises with config | `{"api_key": "test"}` | Agent object with config set | [Fill] | [Pass/Fail] |
-| UT-R-04 | Agent initialises without config (defaults) | `None` | Agent object with `config=None` | [Fill] | [Pass/Fail] |
+| UT-R-01 | `execute()` returns `AgentResponse` with findings | `AgentRequest(prompt="test query")` | `status="success"`, `result.findings` present | `status="success"`, `result={"query": "test query", "findings": "[mock-response:...] test query"}` | Pass |
+| UT-R-02 | `execute()` handles empty query | `AgentRequest(prompt="")` | `status="error"`, no exception raised | `status="error"`, `error="Research query must not be empty."` | Pass |
+| UT-R-03/04 | Agent initialises with/without explicit config | `ResearchAgent()` / `ResearchAgent(config={...})` | Agent object with `config={}` / given dict | Confirmed both paths | Pass |
 
 ### 3.3 Unit Test Cases — Planner Agent
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| UT-P-01 | `create_plan()` returns a list | `"test objective"` | `list` instance | [Fill] | [Pass/Fail] |
-| UT-P-02 | Plan contains structured sub-tasks | `"complex objective"` | List of dicts with `description` keys | [Fill] | [Pass/Fail] |
-| UT-P-03 | `create_plan()` handles empty input | `""` | Empty list or error | [Fill] | [Pass/Fail] |
+| UT-P-01/02 | `create_plan()` returns a `Plan` with structured `SubTask`s | `"test objective"` | `Plan` with 3 `SubTask`s (id + description) | `plan.sub_tasks` = `[st-1, st-2, st-3]`, each with a description | Pass |
+| UT-P-03 | `create_plan()`/`execute()` handles empty input | `AgentRequest(prompt="")` | `status="error"` | `status="error"` | Pass |
 
 ### 3.4 Unit Test Cases — Validator Agent
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| UT-V-01 | `validate()` returns True for valid data | `{"result": "data"}` | `True` | [Fill] | [Pass/Fail] |
-| UT-V-02 | `validate()` returns False for invalid data | `{"invalid": None}` | `False` | [Fill] | [Pass/Fail] |
-| UT-V-03 | `validate()` handles empty dict | `{}` | `True` (or configurable) | [Fill] | [Pass/Fail] |
+| UT-V-01 | `validate()` passes well-formed, non-empty results | `{"st-1": {"findings": "ok"}}` | `ValidationStatus.PASS` | `ValidationStatus.PASS` | Pass |
+| UT-V-02 | `validate()` fails on an empty or error-flagged sub-task | `{"st-1": {}}` | `ValidationStatus.FAIL`, reason naming `st-1` | `FAIL`, reasons=`["'st-1' is empty", "judge: ..."]` | Pass |
+| UT-V-03 | `validate()` handles an empty dict | `{}` | `ValidationStatus.FAIL` (nothing to validate) | `FAIL` | Pass |
 
 ### 3.5 Unit Test Cases — Shared Module
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| UT-S-01 | `AgentRequest` schema validates correct data | Valid dict | Pydantic model created | [Fill] | [Pass/Fail] |
-| UT-S-02 | `AgentRequest` rejects missing required fields | Dict missing `task_id` | `ValidationError` raised | [Fill] | [Pass/Fail] |
-| UT-S-03 | `AgentResponse` accepts optional fields as None | Dict with only required fields | Model created with `result=None` | [Fill] | [Pass/Fail] |
-| UT-S-04 | `setup_logger()` returns a logger instance | `"test_logger"` | `logging.Logger` instance | [Fill] | [Pass/Fail] |
-| UT-S-05 | `Settings` loads default values | No `.env` file | Settings with default `app_name` | [Fill] | [Pass/Fail] |
+| UT-S-01 | `AgentRequest` schema validates correct data | Valid fields | Pydantic model created | Created successfully | Pass |
+| UT-S-02 | `AgentRequest` rejects missing required fields | Dict missing `task_id` | `ValidationError` raised | `pydantic.ValidationError` raised | Pass |
+| UT-S-03 | `AgentResponse` accepts optional fields as None | Only required fields given | Model created with `result=None` | `result=None`, `error=None` | Pass |
+| UT-S-04 | `setup_logger()` returns a logger instance, no duplicate handlers on repeat calls | `"test_logger"` (called twice) | `logging.Logger` instance, 1 handler | Instance returned, `len(handlers) == 1` on 2nd call | Pass |
+| UT-S-05 | `Settings` loads default values with no `.env` | `Settings(_env_file=None)` | Defaults applied | `app_name="MultiAgentAISystem"`, `llm_provider="mock"`, `max_retries=3` | Pass |
+| UT-RT-01..06 | Retry helper: first-try success, retry-then-succeed, exhausted raises `RetryExhaustedError`, exponential backoff timing, unlisted exception not retried, `max_retries<1` rejected | See `tests/test_retry.py` | See `tests/test_retry.py` | All behaviors confirmed via direct execution (see commit history) | Pass |
 
 ### 3.6 Integration Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| IT-01 | Orchestrator dispatches to Planner and receives plan | Mock task | Planner returns sub-task list; Orchestrator processes it | [Fill] | [Pass/Fail] |
-| IT-02 | Orchestrator dispatches to Research Agent for each sub-task | Mock plan with 3 sub-tasks | 3 research results returned | [Fill] | [Pass/Fail] |
-| IT-03 | Orchestrator sends aggregated results to Validator | Mock aggregated results | Validation pass/fail returned | [Fill] | [Pass/Fail] |
-| IT-04 | Full pipeline executes without exceptions (mocked APIs) | Complete task input | Final aggregated result returned | [Fill] | [Pass/Fail] |
-| IT-05 | Pipeline handles agent failure mid-execution | Simulated agent crash | Graceful error handling, partial result | [Fill] | [Pass/Fail] |
+| IT-01 | Orchestrator dispatches to Planner and receives plan | `"Plan a research project"` | Planner runs first; Orchestrator processes sub-tasks | `step_names[0] == "planner"` | Pass |
+| IT-02 | Orchestrator dispatches to Research Agent for each sub-task | Default plan (3 sub-tasks) | 3 research steps dispatched | 3 `research` steps observed | Pass |
+| IT-03 | Orchestrator sends aggregated results to Validator | Aggregated research results | Validator runs last, returns pass/fail | `step_names[-1] == "validator"` | Pass |
+| IT-04 | Full pipeline executes without exceptions (Mock provider) | Complete task input | Final aggregated `RunResult` returned | `status="success"`, no exception | Pass |
+| IT-05 | Pipeline handles agent failure mid-execution | Research Agent double that always raises, `max_retries=2` | Graceful handling, `status="partial"` after retries exhausted | `status="partial"`, `retries_used=2`, every sub-task entry carries `error` | Pass |
+| IT-06 | Planner failure short-circuits the pipeline | Planner double returning `status="error"` | `status="error"`, Research/Validator never dispatched | `status="error"`, `steps == ["planner"]` | Pass |
 
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|-----------------|-------|-----------------|---------------|--------|
-| ST-01 | End-to-end execution with live/sandbox API | Real task string | Complete, validated result | [Fill] | [Pass/Fail] |
-| ST-02 | System recovers from API rate limiting | Rapid consecutive tasks | Retry and eventual success | [Fill] | [Pass/Fail] |
-| ST-03 | System loads configuration from `.env` correctly | Valid `.env` file | Settings populated | [Fill] | [Pass/Fail] |
+| ST-01 | End-to-end execution with live/sandbox LLM API | Real task string, `LLM_PROVIDER=openai` | Complete, validated result | Not yet run — requires a real `OPENAI_API_KEY`; out of scope until Phase F per the project's phased build plan | Not Run |
+| ST-02 | System recovers from API rate limiting | Rapid consecutive tasks against a live provider | Retry and eventual success | Not yet run — same dependency as ST-01 | Not Run |
+| ST-03 | System loads configuration from `.env` correctly | Valid `.env` file | Settings populated from file | Verified the `_env_file`-override path (UT-S-05); a literal `.env`-file read was not separately exercised | Pass (partial) |
 
 ---
 

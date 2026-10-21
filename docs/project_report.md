@@ -386,18 +386,27 @@ Contains cross-cutting concerns shared by all components:
 
 ### 6.2 Test Cases
 
+> *See `docs/test_plan.md` §3 for the full, detailed test-case table (UT-*/IT-*/ST-*). Summary below.*
+
 | Test ID | Module | Test Description | Input | Expected Output | Actual Output | Status |
 |---------|--------|-----------------|-------|-----------------|---------------|--------|
-| TC-01 | Orchestrator | Orchestrator initialises without errors | N/A | Orchestrator object created | [Fill after testing] | [Pass/Fail] |
-| TC-02 | Research Agent | Execute returns structured result dict | `"test query"` | Dict with `status` key | [Fill after testing] | [Pass/Fail] |
-| TC-03 | Planner Agent | `create_plan` returns a list | `"test objective"` | `list` instance | [Fill after testing] | [Pass/Fail] |
-| TC-04 | Validator Agent | `validate` returns boolean True for valid input | `{}` | `True` | [Fill after testing] | [Pass/Fail] |
-| TC-05 | Integration | Full pipeline completes without exception | [Sample task] | Aggregated result | [Fill after testing] | [Pass/Fail] |
-| TC-06 | [Module] | [Description] | [Input] | [Expected] | [Actual] | [Status] |
+| TC-01 | Orchestrator | Orchestrator initialises without errors | N/A | Orchestrator object created | Created with default agents | Pass |
+| TC-02 | Research Agent | `execute()` returns structured `AgentResponse` | `AgentRequest(prompt="test query")` | `status="success"` with findings | Confirmed (see test_plan.md UT-R-01) | Pass |
+| TC-03 | Planner Agent | `create_plan()` returns a `Plan` with sub-tasks | `"test objective"` | `Plan` instance, 3 sub-tasks | Confirmed (see test_plan.md UT-P-01/02) | Pass |
+| TC-04 | Validator Agent | `validate()` returns `ValidationStatus.PASS` for valid input | `{"st-1": {"findings": "ok"}}` | `PASS` | Confirmed (see test_plan.md UT-V-01) | Pass |
+| TC-05 | Integration | Full pipeline completes without exception | Complete task string | Aggregated `RunResult` | `status="success"` (see test_plan.md IT-04) | Pass |
 
 ### 6.3 Code Coverage
 
-> *[Insert coverage report summary after running `pytest --cov`]*
+The dev sandbox used for this phase of implementation had no outbound internet
+access, so `pytest`/`pytest-cov` could not be installed and a real `pytest --cov`
+run could not be executed here (see the verification note at the top of
+`docs/test_plan.md` §3 for how test cases were instead verified by direct
+execution of the real code). **The actual coverage percentage is not yet
+measured** and will be filled in from the first CI run (`.github/workflows/
+tests.yml` uploads a `coverage.xml` artifact) or a contributor's local
+`pytest --cov=src --cov-report=term-missing` — not estimated or invented here,
+per project policy against fabricated metrics.
 
 ---
 
