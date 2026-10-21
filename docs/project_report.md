@@ -416,15 +416,14 @@ Contains cross-cutting concerns shared by all components:
 
 ### 6.3 Code Coverage
 
-The dev sandbox used for this phase of implementation had no outbound internet
-access, so `pytest`/`pytest-cov` could not be installed and a real `pytest --cov`
-run could not be executed here (see the verification note at the top of
-`docs/test_plan.md` §3 for how test cases were instead verified by direct
-execution of the real code). **The actual coverage percentage is not yet
-measured** and will be filled in from the first CI run (`.github/workflows/
-tests.yml` uploads a `coverage.xml` artifact) or a contributor's local
-`pytest --cov=src --cov-report=term-missing` — not estimated or invented here,
-per project policy against fabricated metrics.
+Measured with `pytest --cov=src` in GitHub Actions (run
+[39615268359](https://github.com/yashg2006/MultiAgent/actions/runs/39615268359),
+commit `8dd82b0`): **95.0% line coverage (417 statements, 21 missed)** across
+51 test functions, against a target of ≥ 70%. Every module-level target in
+`docs/test_plan.md` §6 is met; the full per-module table is there.
+
+CI now publishes the coverage total and per-module breakdown as annotations on
+every pull request, so this number stays visible as the code changes.
 
 ---
 
@@ -443,7 +442,7 @@ per project policy against fabricated metrics.
 | Average task completion time | [X seconds] | [Conditions] |
 | Agent success rate | [X%] | [Over N test runs] |
 | API call efficiency | [X calls per task] | [Average] |
-| Test coverage | [X%] | [Via pytest-cov] |
+| Test coverage | 95.0% | `pytest --cov=src`, CI run 39615268359 (see §6.3) |
 
 ### 7.3 Discussion
 
