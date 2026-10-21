@@ -110,27 +110,27 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | Req ID | Requirement | Priority |
 |--------|-------------|----------|
 | FR-R-01 | The Research Agent shall accept a query string and return structured research results. | High |
-| FR-R-02 | The Research Agent shall interface with [data source / API] for information retrieval. | High |
+| FR-R-02 | The Research Agent shall interface with the configured LLM provider (`src/shared/llm_provider.py`) for information synthesis; a dedicated external search/retrieval API is future scope (see §9.2 of the project report). | High |
 | FR-R-03 | The Research Agent shall return results conforming to the `AgentResponse` schema. | High |
-| FR-R-04 | [Placeholder requirement] | [Priority] |
+| FR-R-04 | The Research Agent shall return `status="error"` with a populated `error` field — never raise an exception — if the query is empty or the LLM provider call fails. | High |
 
 #### 3.1.3 Planner Agent
 
 | Req ID | Requirement | Priority |
 |--------|-------------|----------|
 | FR-P-01 | The Planner Agent shall accept a high-level objective and return an ordered list of sub-tasks. | High |
-| FR-P-02 | Each sub-task in the plan shall include a description and estimated complexity. | Medium |
+| FR-P-02 | Each sub-task in the plan shall include a unique `id` and a `description` (see `SubTask` schema). | Medium |
 | FR-P-03 | The Planner Agent shall return results conforming to the `AgentResponse` schema. | High |
-| FR-P-04 | [Placeholder requirement] | [Priority] |
+| FR-P-04 | The Planner Agent shall return `status="error"` with a populated `error` field if the objective is empty or the LLM provider call fails, rather than returning an empty or malformed plan. | High |
 
 #### 3.1.4 Validator Agent
 
 | Req ID | Requirement | Priority |
 |--------|-------------|----------|
-| FR-V-01 | The Validator Agent shall accept a result dictionary and return a boolean validation status. | High |
-| FR-V-02 | The Validator Agent shall check output against predefined quality constraints. | High |
-| FR-V-03 | The Validator Agent shall provide a reason string when validation fails. | Medium |
-| FR-V-04 | [Placeholder requirement] | [Priority] |
+| FR-V-01 | The Validator Agent shall accept a result dictionary and return a `ValidationResult` with a pass/fail status. | High |
+| FR-V-02 | The Validator Agent shall reject (fail) a result set if any sub-task entry is empty or carries an upstream `error` key — this is a deterministic rule check, independent of LLM availability. | High |
+| FR-V-03 | The Validator Agent shall provide a list of reason strings when validation fails. | Medium |
+| FR-V-04 | The Validator Agent shall additionally request a qualitative score from the configured LLM provider (LLM-judge pass); a provider failure during this pass shall not change the rule-check pass/fail verdict. | Medium |
 
 #### 3.1.5 Shared Module
 
@@ -144,7 +144,7 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 
 | Req ID | Category | Requirement |
 |--------|----------|-------------|
-| NFR-01 | **Performance** | Individual agent execution shall complete within [X] seconds under normal conditions. |
+| NFR-01 | **Performance** | With the Mock LLM provider (no network I/O), individual agent execution shall complete in well under 1 second. With a real LLM provider, per-agent latency is bounded by that provider's own response time plus the orchestrator's retry policy (`max_retries`, default 3, exponential backoff from `retry_base_delay_seconds`, default 0.5s — see `src/shared/config.py`), not by this system's own processing. Actual measured values are recorded in `docs/project_report.md §7.2` once benchmarking is run. |
 | NFR-02 | **Scalability** | The architecture shall support addition of new agent types without modifying the orchestrator core logic. |
 | NFR-03 | **Reliability** | The system shall implement retry logic (max 3 attempts) with exponential backoff for transient API failures. |
 | NFR-04 | **Maintainability** | All source code shall follow PEP 8 standards and include module-level and function-level docstrings. |

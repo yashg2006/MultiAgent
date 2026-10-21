@@ -117,13 +117,13 @@
 | FR-03 | The Planner Agent shall generate a multi-step execution plan from a high-level objective. | High | Planner Agent |
 | FR-04 | The Validator Agent shall verify outputs against predefined quality constraints and schemas. | High | Validator Agent |
 | FR-05 | The system shall pass structured data between agents using shared Pydantic schemas. | Medium | Shared |
-| FR-06 | [Placeholder requirement] | [Priority] | [Module] |
+| FR-06 | On validation failure the Orchestrator shall retry the Research→Validate cycle up to `max_retries` times, then return a `status="partial"` result carrying the last aggregated data plus the validation failure reasons, rather than silently discarding partial work. | High | Orchestrator |
 
 ### 3.2 Non-Functional Requirements
 
 | Req ID | Category | Requirement |
 |--------|----------|-------------|
-| NFR-01 | Performance | Agent response time shall not exceed [X seconds] per sub-task under normal load. |
+| NFR-01 | Performance | With the Mock LLM provider, per-agent execution completes in well under 1 second (no network I/O); with a real provider, latency is bounded by that provider's response time plus the retry policy (default `max_retries=3`, exponential backoff). See `docs/SRS.md` NFR-01 for full detail and §7.2 below for measured values once benchmarked. |
 | NFR-02 | Scalability | The architecture shall support addition of new agent types without modifying the orchestrator core. |
 | NFR-03 | Reliability | The system shall implement retry logic with exponential backoff for LLM API failures. |
 | NFR-04 | Maintainability | All modules shall follow PEP 8 coding standards and include docstrings. |
