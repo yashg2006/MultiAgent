@@ -1,0 +1,341 @@
+{
+  "generated_at": "2026-10-21T15:56:57Z",
+  "notes": [
+    "LLM provider: mock"
+  ],
+  "screenshots": [
+    {
+      "file": "screenshots/01-sign-in.png",
+      "caption": "Visiting the app while signed out leads to the sign-in page."
+    },
+    {
+      "file": "screenshots/02-register.png",
+      "caption": "Creating an account (password at least 8 characters)."
+    },
+    {
+      "file": "screenshots/03-empty-home.png",
+      "caption": "Signed in: the start page explains the three agents."
+    },
+    {
+      "file": "screenshots/04-scheduling-live.png",
+      "caption": "While the run is going, each agent step appears as it finishes, with a Cancel button."
+    },
+    {
+      "file": "screenshots/05-scheduling-result.png",
+      "caption": "Choose a real-time scheduler for an embedded project: finished run with step trace and findings."
+    },
+    {
+      "file": "screenshots/06-study-plan-result.png",
+      "caption": "Plan exam preparation: finished run with step trace and findings."
+    },
+    {
+      "file": "screenshots/07-explainer-result.png",
+      "caption": "Understand a design pattern: finished run with step trace and findings."
+    },
+    {
+      "file": "screenshots/08-cancelled.png",
+      "caption": "A run cancelled part-way: finished steps are kept."
+    },
+    {
+      "file": "screenshots/09-history.png",
+      "caption": "Run history in the left rail, newest first."
+    },
+    {
+      "file": "screenshots/10-mobile.png",
+      "caption": "The same run on a phone-sized screen."
+    },
+    {
+      "file": "screenshots/11-second-user-empty.png",
+      "caption": "A second user starts with an empty history."
+    },
+    {
+      "file": "screenshots/12-second-user-blocked.png",
+      "caption": "Opening the first user's run link as the second user: not found."
+    }
+  ],
+  "runs": [
+    {
+      "key": "scheduling",
+      "title": "Choose a real-time scheduler for an embedded project",
+      "task": "Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small embedded system with three periodic tasks, and recommend one.",
+      "status": "success",
+      "retries_used": 0,
+      "steps": [
+        {
+          "seq": 1,
+          "step_name": "planner",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5015268079999942
+        },
+        {
+          "seq": 2,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-1",
+          "latency_seconds": 1.7650513389999958
+        },
+        {
+          "seq": 3,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-2",
+          "latency_seconds": 1.7349947790000044
+        },
+        {
+          "seq": 4,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-3",
+          "latency_seconds": 1.6988383560000102
+        },
+        {
+          "seq": 5,
+          "step_name": "validator",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5016580159999933
+        }
+      ],
+      "usage": {
+        "calls": 5,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      },
+      "sub_tasks": {
+        "st-1": {
+          "query": "Research aspect 1 of: Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small embedded system with three periodic tasks, and recommend one.",
+          "findings": "[mock-response:c6209ee0] Research aspect 1 of: Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small embedded sys",
+          "sources": []
+        },
+        "st-2": {
+          "query": "Research aspect 2 of: Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small embedded system with three periodic tasks, and recommend one.",
+          "findings": "[mock-response:f7dd06a4] Research aspect 2 of: Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small embedded sys",
+          "sources": []
+        },
+        "st-3": {
+          "query": "Research aspect 3 of: Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small embedded system with three periodic tasks, and recommend one.",
+          "findings": "[mock-response:c063a8da] Question: Research aspect 3 of: Compare rate-monotonic (RMS) and earliest-deadline-first (EDF) scheduling for a small em",
+          "sources": []
+        }
+      },
+      "error": null
+    },
+    {
+      "key": "study-plan",
+      "title": "Plan exam preparation",
+      "task": "Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+      "status": "success",
+      "retries_used": 0,
+      "steps": [
+        {
+          "seq": 1,
+          "step_name": "planner",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5013312420000204
+        },
+        {
+          "seq": 2,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-1",
+          "latency_seconds": 1.832485666999986
+        },
+        {
+          "seq": 3,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-2",
+          "latency_seconds": 1.8250582630000167
+        },
+        {
+          "seq": 4,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-3",
+          "latency_seconds": 1.708042751999983
+        },
+        {
+          "seq": 5,
+          "step_name": "validator",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5009543870000073
+        }
+      ],
+      "usage": {
+        "calls": 5,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      },
+      "sub_tasks": {
+        "st-1": {
+          "query": "Research aspect 1 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+          "findings": "[mock-response:629f4d27] Research aspect 1 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch",
+          "sources": []
+        },
+        "st-2": {
+          "query": "Research aspect 2 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+          "findings": "[mock-response:d2d9d21a] Research aspect 2 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch",
+          "sources": []
+        },
+        "st-3": {
+          "query": "Research aspect 3 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+          "findings": "[mock-response:5c86e35b] Question: Research aspect 3 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, servic",
+          "sources": []
+        }
+      },
+      "error": null
+    },
+    {
+      "key": "explainer",
+      "title": "Understand a design pattern",
+      "task": "Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+      "status": "success",
+      "retries_used": 0,
+      "steps": [
+        {
+          "seq": 1,
+          "step_name": "planner",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5018658899999764
+        },
+        {
+          "seq": 2,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-1",
+          "latency_seconds": 1.7338111630000128
+        },
+        {
+          "seq": 3,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-2",
+          "latency_seconds": 1.741472985999991
+        },
+        {
+          "seq": 4,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-3",
+          "latency_seconds": 1.7163729580000222
+        },
+        {
+          "seq": 5,
+          "step_name": "validator",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5009559479999837
+        }
+      ],
+      "usage": {
+        "calls": 5,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      },
+      "sub_tasks": {
+        "st-1": {
+          "query": "Research aspect 1 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+          "findings": "[mock-response:44b949ad] Research aspect 1 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external A",
+          "sources": []
+        },
+        "st-2": {
+          "query": "Research aspect 2 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+          "findings": "[mock-response:47c50cad] Research aspect 2 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external A",
+          "sources": []
+        },
+        "st-3": {
+          "query": "Research aspect 3 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+          "findings": "[mock-response:673970ec] Question: Research aspect 3 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable ",
+          "sources": []
+        }
+      },
+      "error": null
+    },
+    {
+      "key": "cancelled",
+      "title": "Cancel a run part-way",
+      "task": "Survey recent approaches to space debris detection from ground-based optical telescopes, with their main limitations.",
+      "status": "cancelled",
+      "retries_used": 0,
+      "steps": [
+        {
+          "seq": 1,
+          "step_name": "planner",
+          "status": "success",
+          "sub_task_id": null,
+          "latency_seconds": 1.5018323809999856
+        },
+        {
+          "seq": 2,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-1",
+          "latency_seconds": 1.8743944459999966
+        },
+        {
+          "seq": 3,
+          "step_name": "research",
+          "status": "success",
+          "sub_task_id": "st-2",
+          "latency_seconds": 1.8889307230000156
+        }
+      ],
+      "usage": {
+        "calls": 3,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      },
+      "sub_tasks": {
+        "st-1": {
+          "query": "Research aspect 1 of: Survey recent approaches to space debris detection from ground-based optical telescopes, with their main limitations.",
+          "findings": "[mock-response:572563f5] Question: Research aspect 1 of: Survey recent approaches to space debris detection from ground-based optical telescopes,",
+          "sources": [
+            {
+              "title": "International Space Station",
+              "url": "https://en.wikipedia.org/wiki/International_Space_Station"
+            },
+            {
+              "title": "Fermi paradox",
+              "url": "https://en.wikipedia.org/wiki/Fermi_paradox"
+            },
+            {
+              "title": "Life on Mars",
+              "url": "https://en.wikipedia.org/wiki/Life_on_Mars"
+            }
+          ]
+        },
+        "st-2": {
+          "query": "Research aspect 2 of: Survey recent approaches to space debris detection from ground-based optical telescopes, with their main limitations.",
+          "findings": "[mock-response:df346c74] Question: Research aspect 2 of: Survey recent approaches to space debris detection from ground-based optical telescopes,",
+          "sources": [
+            {
+              "title": "International Space Station",
+              "url": "https://en.wikipedia.org/wiki/International_Space_Station"
+            },
+            {
+              "title": "Fermi paradox",
+              "url": "https://en.wikipedia.org/wiki/Fermi_paradox"
+            },
+            {
+              "title": "Life on Mars",
+              "url": "https://en.wikipedia.org/wiki/Life_on_Mars"
+            }
+          ]
+        }
+      },
+      "error": "Cancelled by user."
+    }
+  ]
+}

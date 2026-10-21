@@ -1,0 +1,102 @@
+{
+  "id": "6745c2a6-1049-44de-87c2-ba82c56344a9",
+  "input_task": "Survey recent approaches to space debris detection from ground-based optical telescopes, with their main limitations.",
+  "status": "cancelled",
+  "result": {
+    "st-1": {
+      "query": "Research aspect 1 of: Survey recent approaches to space debris detection from ground-based optical telescopes, with their main limitations.",
+      "findings": "[mock-response:572563f5] Question: Research aspect 1 of: Survey recent approaches to space debris detection from ground-based optical telescopes,",
+      "sources": [
+        {
+          "title": "International Space Station",
+          "url": "https://en.wikipedia.org/wiki/International_Space_Station"
+        },
+        {
+          "title": "Fermi paradox",
+          "url": "https://en.wikipedia.org/wiki/Fermi_paradox"
+        },
+        {
+          "title": "Life on Mars",
+          "url": "https://en.wikipedia.org/wiki/Life_on_Mars"
+        }
+      ]
+    },
+    "st-2": {
+      "query": "Research aspect 2 of: Survey recent approaches to space debris detection from ground-based optical telescopes, with their main limitations.",
+      "findings": "[mock-response:df346c74] Question: Research aspect 2 of: Survey recent approaches to space debris detection from ground-based optical telescopes,",
+      "sources": [
+        {
+          "title": "International Space Station",
+          "url": "https://en.wikipedia.org/wiki/International_Space_Station"
+        },
+        {
+          "title": "Fermi paradox",
+          "url": "https://en.wikipedia.org/wiki/Fermi_paradox"
+        },
+        {
+          "title": "Life on Mars",
+          "url": "https://en.wikipedia.org/wiki/Life_on_Mars"
+        }
+      ]
+    }
+  },
+  "error": "Cancelled by user.",
+  "retries_used": 0,
+  "cancel_requested": true,
+  "steps": [
+    {
+      "seq": 1,
+      "step_name": "planner",
+      "status": "success",
+      "latency_seconds": 1.5018323809999856,
+      "sub_task_id": null,
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 2,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.8743944459999966,
+      "sub_task_id": "st-1",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 3,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.8889307230000156,
+      "sub_task_id": "st-2",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    }
+  ],
+  "usage": {
+    "calls": 3,
+    "retries": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_usd": 0.0
+  },
+  "created_at": "2026-10-21T15:56:50.515255",
+  "updated_at": "2026-10-21T15:56:54.304634"
+}

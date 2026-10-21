@@ -1,0 +1,108 @@
+{
+  "id": "c0ad7c4c-d5ce-480d-9706-bc0b4bf2c2c6",
+  "input_task": "Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+  "status": "success",
+  "result": {
+    "st-1": {
+      "query": "Research aspect 1 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+      "findings": "[mock-response:44b949ad] Research aspect 1 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external A"
+    },
+    "st-2": {
+      "query": "Research aspect 2 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+      "findings": "[mock-response:47c50cad] Research aspect 2 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external A"
+    },
+    "st-3": {
+      "query": "Research aspect 3 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable external API, with a concrete example.",
+      "findings": "[mock-response:673970ec] Question: Research aspect 3 of: Explain how the circuit breaker pattern protects a web service that calls an unreliable "
+    }
+  },
+  "error": null,
+  "retries_used": 0,
+  "cancel_requested": false,
+  "steps": [
+    {
+      "seq": 1,
+      "step_name": "planner",
+      "status": "success",
+      "latency_seconds": 1.5018658899999764,
+      "sub_task_id": null,
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 2,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.7338111630000128,
+      "sub_task_id": "st-1",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 3,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.741472985999991,
+      "sub_task_id": "st-2",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 4,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.7163729580000222,
+      "sub_task_id": "st-3",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 5,
+      "step_name": "validator",
+      "status": "success",
+      "latency_seconds": 1.5009559479999837,
+      "sub_task_id": null,
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    }
+  ],
+  "usage": {
+    "calls": 5,
+    "retries": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_usd": 0.0
+  },
+  "created_at": "2026-10-21T15:56:42.729516",
+  "updated_at": "2026-10-21T15:56:49.476256"
+}

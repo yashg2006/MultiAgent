@@ -1,0 +1,57 @@
+INFO:     Started server process [2965]
+INFO:     Waiting for application startup.
+[2026-10-21 15:56:20,072] INFO [src.api.main]: API ready (queue=inline)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54206 - "GET /ready HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54222 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+/opt/hostedtoolcache/Python/3.10.22/x64/lib/python3.10/site-packages/jwt/api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+INFO:     127.0.0.1:54226 - "POST /auth/register HTTP/1.1" 201 Created
+/opt/hostedtoolcache/Python/3.10.22/x64/lib/python3.10/site-packages/jwt/api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+INFO:     127.0.0.1:54240 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54242 - "POST /tasks HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54256 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54272 - "GET /tasks/74e68f46-bee5-454b-90c8-2a97413c7bfc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54288 - "GET /tasks/74e68f46-bee5-454b-90c8-2a97413c7bfc/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40896 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40898 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40906 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40910 - "GET /tasks/74e68f46-bee5-454b-90c8-2a97413c7bfc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40918 - "POST /tasks HTTP/1.1" 201 Created
+INFO:     127.0.0.1:40920 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40928 - "GET /tasks/8d9de5bb-edac-458b-99e8-5fe2ff1f43d0/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40926 - "GET /tasks/8d9de5bb-edac-458b-99e8-5fe2ff1f43d0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40930 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44336 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44344 - "GET /tasks/8d9de5bb-edac-458b-99e8-5fe2ff1f43d0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44358 - "POST /tasks HTTP/1.1" 201 Created
+INFO:     127.0.0.1:44364 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44374 - "GET /tasks/c0ad7c4c-d5ce-480d-9706-bc0b4bf2c2c6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44380 - "GET /tasks/c0ad7c4c-d5ce-480d-9706-bc0b4bf2c2c6/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44384 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44398 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44410 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37948 - "GET /tasks/c0ad7c4c-d5ce-480d-9706-bc0b4bf2c2c6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37960 - "POST /tasks HTTP/1.1" 201 Created
+INFO:     127.0.0.1:37968 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37972 - "GET /tasks/6745c2a6-1049-44de-87c2-ba82c56344a9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37986 - "GET /tasks/6745c2a6-1049-44de-87c2-ba82c56344a9/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37998 - "POST /tasks/6745c2a6-1049-44de-87c2-ba82c56344a9/cancel HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:38008 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38010 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38020 - "GET /tasks/6745c2a6-1049-44de-87c2-ba82c56344a9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38032 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38042 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38046 - "GET /tasks/74e68f46-bee5-454b-90c8-2a97413c7bfc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38052 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+/opt/hostedtoolcache/Python/3.10.22/x64/lib/python3.10/site-packages/jwt/api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+INFO:     127.0.0.1:38056 - "POST /auth/register HTTP/1.1" 201 Created
+INFO:     127.0.0.1:38068 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38070 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38078 - "GET /tasks/74e68f46-bee5-454b-90c8-2a97413c7bfc HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38076 - "GET /tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38094 - "GET /tasks/74e68f46-bee5-454b-90c8-2a97413c7bfc HTTP/1.1" 404 Not Found

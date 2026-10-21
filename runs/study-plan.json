@@ -1,0 +1,108 @@
+{
+  "id": "8d9de5bb-edac-458b-99e8-5fe2ff1f43d0",
+  "input_task": "Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+  "status": "success",
+  "result": {
+    "st-1": {
+      "query": "Research aspect 1 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+      "findings": "[mock-response:629f4d27] Research aspect 1 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch"
+    },
+    "st-2": {
+      "query": "Research aspect 2 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+      "findings": "[mock-response:d2d9d21a] Research aspect 2 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch"
+    },
+    "st-3": {
+      "query": "Research aspect 3 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, services, launch files and turtlesim.",
+      "findings": "[mock-response:5c86e35b] Question: Research aspect 3 of: Plan a two-week study schedule for a ROS 1 practical exam covering nodes, topics, servic"
+    }
+  },
+  "error": null,
+  "retries_used": 0,
+  "cancel_requested": false,
+  "steps": [
+    {
+      "seq": 1,
+      "step_name": "planner",
+      "status": "success",
+      "latency_seconds": 1.5013312420000204,
+      "sub_task_id": null,
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 2,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.832485666999986,
+      "sub_task_id": "st-1",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 3,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.8250582630000167,
+      "sub_task_id": "st-2",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 4,
+      "step_name": "research",
+      "status": "success",
+      "latency_seconds": 1.708042751999983,
+      "sub_task_id": "st-3",
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    },
+    {
+      "seq": 5,
+      "step_name": "validator",
+      "status": "success",
+      "latency_seconds": 1.5009543870000073,
+      "sub_task_id": null,
+      "detail": null,
+      "usage": {
+        "calls": 1,
+        "retries": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0
+      }
+    }
+  ],
+  "usage": {
+    "calls": 5,
+    "retries": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_usd": 0.0
+  },
+  "created_at": "2026-10-21T15:56:34.964327",
+  "updated_at": "2026-10-21T15:56:41.724236"
+}
