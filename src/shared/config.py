@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     llm_max_tokens: int = 1024
+    # Demo/load-test only: make each Mock call take this long, so live progress
+    # and cancellation behave as they would with a real model. 0 = instant.
+    mock_latency_seconds: float = 0.0
     llm_timeout_seconds: float = 60.0
 
     # Per-call retry for transient provider errors (NFR-03).

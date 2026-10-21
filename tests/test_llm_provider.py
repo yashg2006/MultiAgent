@@ -266,3 +266,13 @@ def test_provider_from_settings_is_shared_until_reset(monkeypatch):
 )
 def test_extract_json_object(text, expected):
     assert extract_json_object(text) == expected
+
+
+def test_mock_latency_simulates_a_slow_model(monkeypatch):
+    import time as time_module
+
+    slept = []
+    monkeypatch.setattr(settings, "mock_latency_seconds", 1.5)
+    monkeypatch.setattr(time_module, "sleep", slept.append)
+    MockLLMProvider().generate("hello")
+    assert slept == [1.5]

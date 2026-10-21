@@ -1,0 +1,91 @@
+name: Demo walkthrough
+
+# Starts the app, drives the real UI through practical scenarios with
+# Playwright, and publishes screenshots, videos, Markdown exports and run
+# records to the `demo-results` branch.
+# Uses real Claude when the ANTHROPIC_API_KEY secret is set, otherwise the
+# Mock provider (placeholder answers, real Wikipedia sources).
+on:
+  workflow_dispatch:
+  push:
+    branches: ["demo/run"]
+
+permissions:
+  contents: write
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LLM_PROVIDER: ${{ secrets.ANTHROPIC_API_KEY != '' && 'anthropic' || 'mock' }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: claude-haiku-5-5
+      SEARCH_TOOL: wikipedia
+      # Only affects the Mock provider: make calls take about as long as real ones.
+      MOCK_LATENCY_SECONDS: "1.5"
+      DATABASE_URL: sqlite:///./demo.db
+      QUEUE_BACKEND: inline
+      JWT_SECRET: demo-run-secret-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Install backend, Playwright, and frontend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt "playwright>=1.47,<2"
+        python -m playwright install --with-deps chromium
+        cd frontend && npm install --no-audit --no-fund
+
+    - name: Start API and frontend
+      run: |
+        nohup uvicorn src.api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
+        (cd frontend && nohup npx vite --host 127.0.0.1 --port 5173 --strictPort > ../vite.log 2>&1 &)
+        for i in $(seq 1 60); do
+          if curl -sf http://127.0.0.1:8000/ready > /dev/null && curl -sf http://127.0.0.1:5173/ > /dev/null; then
+            echo "up after ${i}s"; exit 0
+          fi
+          sleep 1
+        done
+        echo "::error title=Startup::API or frontend did not start"; tail -50 api.log vite.log; exit 1
+
+    - name: Run the walkthrough
+      run: python demo/run_demo.py --base-url http://127.0.0.1:5173 --out demo-output --provider "$LLM_PROVIDER"
+
+    - name: Summarise
+      if: always()
+      run: |
+        mkdir -p demo-output/logs
+        cp api.log vite.log demo-output/logs/ 2>/dev/null || true
+        python - <<'PY'
+        import json, pathlib
+        p = pathlib.Path("demo-output/summary.json")
+        if p.exists():
+            s = json.loads(p.read_text())
+            runs = ", ".join(f"{r['key']}={r['status']}" for r in s["runs"])
+            print(f"::notice title=Demo::{len(s['screenshots'])} screenshots; runs: {runs}; {'; '.join(s['notes'])}")
+        else:
+            print("::warning title=Demo::no summary.json produced")
+        PY
+
+    - name: Publish to the demo-results branch
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        cd demo-output
+        git init -q -b demo-results
+        git add -A
+        git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+          commit -q -m "Demo run ${GITHUB_RUN_ID} (${LLM_PROVIDER}) from ${GITHUB_SHA::7}"
+        git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" demo-results
+        echo "::notice title=Demo results::published to the demo-results branch"

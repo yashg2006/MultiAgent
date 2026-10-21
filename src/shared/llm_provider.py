@@ -22,6 +22,7 @@ import hashlib
 import json
 import re
 import threading
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -100,6 +101,8 @@ class MockLLMProvider(LLMProvider):
         max_tokens: int = 1024,
         kind: str = "text",
     ) -> LLMResult:
+        if settings.mock_latency_seconds > 0:
+            time.sleep(settings.mock_latency_seconds)
         if kind == "plan":
             text = self._plan(prompt)
         elif kind == "judge":
