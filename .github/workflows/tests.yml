@@ -10,6 +10,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # Real Postgres and Redis for the integration pass below.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: multiagent_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
@@ -53,6 +72,23 @@ jobs:
           python -m coverage report
           echo '```'
         } >> "$GITHUB_STEP_SUMMARY"
+
+    # Same database/queue tests again, on Postgres instead of SQLite and with a
+    # real Redis + arq worker round trip (skipped in the first pass).
+    - name: Integration tests (Postgres + Redis)
+      env:
+        TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/multiagent_test
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        python -m pytest tests/test_api.py tests/test_worker.py tests/test_migrations.py \
+          -p no:cacheprovider -q -rs --junitxml=integration.xml
+        python - <<'PY'
+        import xml.etree.ElementTree as ET
+        suite = ET.parse("integration.xml").getroot()
+        suite = suite if suite.tag == "testsuite" else suite[0]
+        total, fail, err, skip = (int(suite.get(k, 0)) for k in ("tests", "failures", "errors", "skipped"))
+        print(f"::notice title=Integration tests (Postgres + Redis)::{total - fail - err - skip}/{total} passed, {skip} skipped")
+        PY
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
