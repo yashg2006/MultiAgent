@@ -16,7 +16,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from src.api.queue import make_queue
+from src.api.auth import router as auth_router
+from src.api.auth import signing_key
+from src.api.queue import RedisQueue, make_queue
+from src.api.rate_limit import InMemoryRateLimiter, RedisRateLimiter
 from src.api.routes import router as tasks_router
 from src.shared.config import settings
 from src.shared.db import configure_database, get_engine, run_migrations
@@ -40,10 +43,16 @@ AUTO_MIGRATE = os.getenv("AUTO_MIGRATE", "true").lower() == "true"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    signing_key()  # fail fast if ENV=production and JWT_SECRET is missing
     configure_database()
     if AUTO_MIGRATE:
         await run_in_threadpool(run_migrations)
     app.state.queue = await make_queue(settings.queue_backend, settings.redis_url)
+    app.state.rate_limiter = (
+        RedisRateLimiter(app.state.queue.pool)
+        if isinstance(app.state.queue, RedisQueue)
+        else InMemoryRateLimiter()
+    )
     logger.info("API ready (queue=%s)", app.state.queue.name)
     yield
     await app.state.queue.close()
@@ -59,8 +68,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_credentials=True,  # the session cookie
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Last-Event-ID"],
+    allow_headers=["Content-Type", "Last-Event-ID", "Authorization"],
 )
 
 
@@ -94,4 +104,5 @@ async def ready() -> JSONResponse:
     )
 
 
+app.include_router(auth_router)
 app.include_router(tasks_router)
