@@ -25,6 +25,7 @@ from src.api.rate_limit import enforce_rate_limit
 from src.api.schemas import TaskCreateRequest, TaskOut
 from src.shared.config import settings
 from src.shared.db import TERMINAL_STATUSES, RunStepRecord, TaskRecord, session_scope
+from src.shared.observability import request_id_var
 from src.shared.schemas import LLMUsage
 from src.shared.utils import setup_logger
 
@@ -112,7 +113,9 @@ async def create_task(
             return _to_task_out(record, [])
 
     task_out = await run_in_threadpool(insert)
-    await request.app.state.queue.enqueue(task_id, background_tasks)
+    await request.app.state.queue.enqueue(
+        task_id, background_tasks, request_id=request_id_var.get()
+    )
     return task_out
 
 

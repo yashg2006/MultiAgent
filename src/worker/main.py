@@ -15,18 +15,23 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings
+from prometheus_client import start_http_server
 
 from src.shared.config import settings
 from src.shared.db import configure_database
 from src.worker.pipeline import execute_task
 
 
-async def run_task(ctx: dict[str, Any], task_id: str) -> None:
-    await asyncio.to_thread(execute_task, task_id)
+async def run_task(ctx: dict[str, Any], task_id: str, request_id: str | None = None) -> None:
+    await asyncio.to_thread(execute_task, task_id, request_id=request_id)
 
 
 async def startup(ctx: dict[str, Any]) -> None:
     configure_database()
+    port = int(os.getenv("WORKER_METRICS_PORT", "9100"))
+    if port:
+        # Prometheus scrapes each worker here (the API serves its own /metrics).
+        start_http_server(port)
 
 
 class WorkerSettings:

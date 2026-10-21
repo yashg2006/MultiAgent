@@ -9,11 +9,14 @@ call twice for the same task (e.g. a redelivered job): only a task still in
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 
 from sqlalchemy import select
 
 from src.orchestrator.main import Orchestrator
+from src.shared.config import settings
+from src.shared.observability import record_run, record_step, request_id_var, task_id_var
 from src.shared.db import RunStepRecord, TaskRecord, serialize, session_scope
 from src.shared.schemas import RunStep
 from src.shared.utils import setup_logger
@@ -43,17 +46,37 @@ def _claim(task_id: str) -> str | None:
 def execute_task(
     task_id: str,
     orchestrator_factory: Callable[[], Orchestrator] = Orchestrator,
+    request_id: str | None = None,
 ) -> None:
-    """Run the pipeline for `task_id`, saving each step as it finishes."""
+    """Run the pipeline for `task_id`, saving each step as it finishes.
+
+    `request_id` (from the API request that created the task) is attached to
+    every log line of the run, so API and worker logs can be joined.
+    """
+    task_token = task_id_var.set(task_id)
+    request_token = request_id_var.set(request_id) if request_id else None
+    try:
+        _execute(task_id, orchestrator_factory)
+    finally:
+        task_id_var.reset(task_token)
+        if request_token is not None:
+            request_id_var.reset(request_token)
+
+
+def _execute(task_id: str, orchestrator_factory: Callable[[], Orchestrator]) -> None:
     input_task = _claim(task_id)
     if input_task is None:
         return
 
+    logger.info("Run started")
+    started = time.monotonic()
+    provider = settings.llm_provider
     seq = 0
 
     def save_step(step: RunStep) -> None:
         nonlocal seq
         seq += 1
+        record_step(step, provider)
         with session_scope() as session:
             session.add(
                 RunStepRecord(
@@ -96,3 +119,14 @@ def execute_task(
         record.result_json = serialize(result.result)
         record.error = result.error
         record.retries_used = result.retries_used
+    duration = time.monotonic() - started
+    record_run(result, duration)
+    logger.info(
+        "Run finished",
+        extra={
+            "status": result.status,
+            "duration_seconds": round(duration, 3),
+            "llm_calls": result.usage.calls,
+            "cost_usd": result.usage.cost_usd,
+        },
+    )
