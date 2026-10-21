@@ -176,7 +176,8 @@
 | Version Control | Git 2.30+, GitHub |
 | CI/CD | GitHub Actions |
 | Testing Framework | pytest 7.4+ |
-| Key Libraries | pydantic, python-dotenv, [LLM SDK] |
+| Key Libraries | pydantic, pydantic-settings, FastAPI, SQLAlchemy, uvicorn; optional `openai` SDK |
+| Frontend | Node.js 22, React 18, TypeScript 5, Vite 5, Tailwind CSS 3, TanStack React Query 5 |
 
 ---
 
@@ -351,7 +352,9 @@ ever wanted.
 | pytest | Testing framework | Industry standard for Python, rich plugin ecosystem |
 | GitHub Actions | CI/CD pipeline | Free for public repos, native GitHub integration |
 | python-dotenv | Config management | Secure handling of API keys and environment variables |
-| [LLM API SDK] | AI capabilities | [Justification for chosen LLM provider] |
+| LLM provider abstraction (`src/shared/llm_provider.py`) | AI capabilities | Agents depend on an `LLMProvider` interface, not a vendor SDK. The default deterministic **Mock** provider lets the whole pipeline, its tests, and demos run offline with no API key or cost; the optional **OpenAI** provider (`LLM_PROVIDER=openai`) is loaded only when selected, so the SDK is not a hard dependency. |
+| FastAPI + SQLAlchemy (SQLite) | HTTP API and persistence | Typed request/response validation via the same Pydantic models used internally; SQLite needs no server for local use or CI, and `DATABASE_URL` allows a later move to Postgres. |
+| React + Vite + Tailwind + React Query | Web UI | React Query handles polling a running task and caching run history; Vite gives fast builds; Tailwind keeps the small design system (colors, type) in one config. |
 
 ### 5.2 Module-wise Description
 
@@ -496,7 +499,7 @@ every pull request, so this number stays visible as the code changes.
 
 - **Agent Expansion:** Add new specialised agents (e.g., Code Generation Agent, Summarisation Agent) without modifying the orchestrator core.
 - **Persistent Memory:** Implement agent memory/context windows for multi-turn task execution.
-- **Web Interface:** Build a frontend dashboard for task submission and result visualisation.
+- **Web Interface:** *(Implemented in Phase E — `frontend/`.)* Possible extensions: live step streaming instead of polling, and a metrics dashboard across runs.
 - **Production Deployment:** Containerise with Docker and deploy to cloud infrastructure.
 - [Additional future scope item]
 

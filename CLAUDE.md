@@ -41,7 +41,18 @@ pytest --cov=src            # with coverage
 ruff check .                # lint
 black --check .             # format check (black . to auto-format)
 mypy src                    # type check
+uvicorn src.api.main:app --reload   # API on :8000
+
+cd frontend && npm install  # frontend deps (Node 20+)
+npm run dev                 # UI on :5173, proxies /tasks and /health to :8000
+npm test                    # vitest
+npm run build               # tsc + production build
 ```
+
+CI (`.github/workflows/tests.yml`) runs all of the above on every PR to
+`main`/`develop` and posts coverage and frontend test counts as PR
+annotations. If a sandbox can't install dependencies, open the PR and use
+CI as the verification step rather than reporting unrun checks as passing.
 
 LLM provider is selected via `LLM_PROVIDER` env var (`mock` by default — no
 API key required; set to `openai` and supply `OPENAI_API_KEY` in `.env` to
