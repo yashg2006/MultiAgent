@@ -173,6 +173,24 @@ vitest tests passed**, and `vite build` succeeded (JS 214.50 kB / 69.10 kB gzip,
 | FE-12..14 | API client: JSON POST body, API `detail` surfaced, non-JSON error falls back to status | As specified | Pass |
 | FE-15..17 | `TaskComposer`: disabled until a goal is typed, submits and navigates, shows recovery hint when the API is unreachable | As specified | Pass |
 
+### 3.7d Real-LLM Path Test Cases (Phase F1)
+
+From CI run [39623939397](https://github.com/yashg2006/MultiAgent/actions/runs/39623939397)
+(PR #4): all pass. No real model is called; providers are scripted fakes or a
+fake Anthropic SDK module. Backend suite: 107 test functions; frontend: 21/21.
+
+| Test ID | Area (file) | What is verified | Status |
+|---------|-------------|------------------|--------|
+| RES-01..05 | Circuit breaker (`test_resilience.py`) | Opens at threshold and fails fast without calling the provider; half-open trial closes on success / re-opens on failure; success resets the count | Pass |
+| RES-06..09 | Resilient LLM calls (`test_resilience.py`) | Transient errors retried and counted (3 calls, 2 retries); non-transient errors not retried; gives up after `LLM_MAX_ATTEMPTS`; open circuit stops further calls | Pass |
+| LLM-11..21 | Providers (`test_llm_provider.py`) | Anthropic: SDK retries disabled, timeout set, text blocks joined, usage read, only transient error types retried, configured model used, key required; Mock plan/judge JSON; cost table incl. unknown model = $0; shared provider cache; JSON extraction from fenced/prose output | Pass |
+| PLN-01..13 | Planner (`test_planner.py`) | Parses fenced JSON with `depends_on`; states the sub-task limit; one repair attempt then a clean error; provider failure reported, not raised; rejects empty, duplicate, unknown/self dependency, cyclic, blank, over-limit plans | Pass |
+| VAL-01..10 | Validator (`test_validator.py`) | Judge score ≥ threshold passes, below fails with reasons; threshold configurable; prompt includes objective and findings; rule failures skip the judge; unusable/out-of-range score or judge outage falls back to rule verdict | Pass |
+| SRC-01..07 | Search + Research (`test_search.py`) | Wikipedia hits parsed, markup stripped, User-Agent sent; network errors / bad payloads / blank queries give no hits; research prompt includes hits, dependency context and retry feedback; sources returned | Pass |
+| ORC-06..13 | Orchestrator (`test_orchestrator.py`) | Dependency levels and cycle fallback; dependent sub-task receives prior findings; every step streamed; failing observer ignored; cancellation keeps partial results; retry carries validator feedback; usage totalled; supplied task id used | Pass |
+| API-08 | API (`test_api.py`) | Completed task reports usage totals (Mock: 5 calls, $0) | Pass |
+| FE-18..21 | Frontend (`usage.test.ts`) | Usage wording: none, calls-only for Mock, retries/tokens/cost, tiny costs shown as "under $0.01" | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
@@ -207,12 +225,27 @@ vitest tests passed**, and `vite build` succeeded (JS 214.50 kB / 69.10 kB gzip,
 
 ## 6. Code Coverage — Target vs. Measured
 
-Measured by `pytest --cov=src` in CI run
-[39615268359](https://github.com/yashg2006/MultiAgent/actions/runs/39615268359)
-(commit `8dd82b0`). Per-area figures are aggregated from CI's per-file report.
+Latest measurement: `pytest --cov=src` in CI run
+[39623939397](https://github.com/yashg2006/MultiAgent/actions/runs/39623939397)
+(PR #4, Phase F1). Per-area figures are aggregated from CI's per-file report.
 
 | Module | Target | Measured (statements / missed) | Met? |
 |--------|--------|-------------------------------|------|
+| `src/orchestrator/` | ≥ 70% | 98.3% (121 / 2) | Yes |
+| `src/agents/research_agent/` | ≥ 70% | 93.2% (44 / 3) | Yes |
+| `src/agents/planner_agent/` | ≥ 70% | 97.5% (81 / 2) | Yes |
+| `src/agents/validator_agent/` | ≥ 70% | 98.4% (63 / 1) | Yes |
+| `src/agents/base.py` | — | 92.9% (14 / 1) | — |
+| `src/shared/` | ≥ 80% | 99.2% (396 / 3) | Yes |
+| `src/api/` | — | 91.7% (109 / 9) | — |
+| **Overall** | **≥ 70%** | **97.5% (828 / 21)** | **Yes** |
+
+History: 90% at the first measured run (Phase D), 95% after targeted LLM
+provider tests, 97.5% after Phase F1 (which roughly doubled the code size).
+Remaining misses are mostly defensive branches (e.g. the background-task
+crash handler in `src/api/routes.py`).
+
+--------|--------|-------------------------------|------|
 | `src/orchestrator/` | ≥ 70% | 98.6% (69 / 1) | Yes |
 | `src/agents/research_agent/` | ≥ 70% | 82.4% (17 / 3) | Yes |
 | `src/agents/planner_agent/` | ≥ 70% | 87.0% (23 / 3) | Yes |
@@ -236,3 +269,4 @@ handler in `src/api/routes.py`.
 |---------|------|--------|---------|
 | 1.0 | [DD/MM/YYYY] | [Student Name 3] | Initial test plan |
 | 1.1 | 21/10/2026 | Yash Gharat (with Claude Code) | Filled test-case results from CI; added API (§3.7a) and LLM provider (§3.7b) cases; recorded measured coverage (§6) |
+| 1.2 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase E (§3.7c) and Phase F1 (§3.7d) cases; coverage refreshed to 97.5% |

@@ -43,8 +43,9 @@ npm run dev
 ```
 
 No API key is needed: the default `LLM_PROVIDER=mock` is a deterministic,
-offline stand-in for an LLM. To use OpenAI, `pip install openai`, then set
-`LLM_PROVIDER=openai` and `OPENAI_API_KEY` in `.env`.
+offline stand-in for an LLM. To use Claude, set `LLM_PROVIDER=anthropic` and
+`ANTHROPIC_API_KEY` in `.env`. Each run's page shows how many model calls it
+made and what they cost. All options are listed in `.env.example`.
 
 ## API
 
@@ -59,9 +60,14 @@ offline stand-in for an LLM. To use OpenAI, `pip install openai`, then set
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
-| `LLM_PROVIDER` | `mock` | `mock` or `openai` |
-| `OPENAI_API_KEY` | (empty) | Required when `LLM_PROVIDER=openai` |
+| `LLM_PROVIDER` | `mock` | `mock` (free, offline), `anthropic`, or `openai` |
+| `ANTHROPIC_API_KEY` | (empty) | Required when `LLM_PROVIDER=anthropic` |
+| `ANTHROPIC_MODEL` | `claude-haiku-5-5` | Claude model to use |
+| `OPENAI_API_KEY` | (empty) | Required when `LLM_PROVIDER=openai` (`pip install openai`) |
+| `SEARCH_TOOL` | `none` | `wikipedia` grounds research in free Wikipedia search |
 | `MAX_RETRIES` | `3` | Validation attempts before returning a partial result |
+| `JUDGE_THRESHOLD` | `0.6` | Minimum 0–1 quality score from the validator's LLM judge |
+| `LLM_MAX_ATTEMPTS` | `3` | Attempts per model call on transient errors (with backoff) |
 | `DATABASE_URL` | `sqlite:///./tasks.db` | Where runs are stored |
 | `CORS_ORIGINS` | `http://localhost:5173` | Browser origins allowed to call the API (comma-separated) |
 | `VITE_API_URL` | (empty) | Frontend only: API base URL for a deployed build; the dev server proxies to port 8000 |

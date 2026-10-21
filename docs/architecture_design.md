@@ -286,6 +286,9 @@ classDiagram
 | Python as primary language | Strong AI/ML ecosystem; team familiarity; rapid prototyping. |
 | Environment-based configuration (`.env`) | Separates secrets from code; follows 12-factor app principles. |
 | pytest for testing | Industry standard; rich plugin ecosystem; integrates with GitHub Actions. |
+| Hand-written orchestrator instead of LangGraph | The pipeline is a fixed sequence (plan → research levels → validate → retry), which ~200 lines of plain Python express directly and test exhaustively (98% coverage), including retries, cancellation and parallel levels. LangGraph would add a large dependency and a second state model without enabling anything the project needs; it remains an option if the flow becomes a general graph. |
+| All model calls through one resilient path | `generate_with_resilience` applies retries (transient errors only), a shared circuit breaker, timeouts, and usage/cost accounting in one place, so every agent gets them and none can bypass them. |
+| Mock provider as the default | Tests, CI and demos run offline, deterministically, at no cost; a real model is opt-in via `LLM_PROVIDER`. |
 
 ---
 
