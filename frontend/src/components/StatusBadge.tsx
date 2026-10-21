@@ -4,6 +4,7 @@ const STYLES: Record<string, { label: string; className: string }> = {
   partial: { label: "Partial result", className: "text-partial border-partial/40" },
   error: { label: "Failed", className: "text-fail border-fail/40" },
   rejected: { label: "Rejected", className: "text-partial border-partial/40" },
+  cancelled: { label: "Cancelled", className: "text-steel border-rule" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
