@@ -52,9 +52,14 @@ class JsonFormatter(logging.Formatter):
             if value:
                 payload[key] = value
         for key, value in vars(record).items():
-            if key not in _STANDARD_ATTRS and key not in payload and key not in (
-                "request_id",
-                "task_id",
+            if (
+                key not in _STANDARD_ATTRS
+                and key not in payload
+                and key
+                not in (
+                    "request_id",
+                    "task_id",
+                )
             ):
                 payload[key] = value
         if record.exc_info:

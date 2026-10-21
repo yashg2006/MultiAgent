@@ -16,8 +16,8 @@ from sqlalchemy import select
 
 from src.orchestrator.main import Orchestrator
 from src.shared.config import settings
-from src.shared.observability import record_run, record_step, request_id_var, task_id_var
 from src.shared.db import RunStepRecord, TaskRecord, serialize, session_scope
+from src.shared.observability import record_run, record_step, request_id_var, task_id_var
 from src.shared.schemas import RunStep
 from src.shared.utils import setup_logger
 
