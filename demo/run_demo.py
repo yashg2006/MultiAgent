@@ -124,6 +124,16 @@ def finished_badge(page: Page):
     return main_badge(page, "Passed").or_(main_badge(page, "Partial result"))
 
 
+def settle(page: Page, findings: bool = False) -> None:
+    """Let the final state finish rendering before a screenshot: the status badge
+    flips first, then the full result arrives and the history list refreshes."""
+    if findings:
+        expect(page.get_by_role("heading", name="Findings")).to_be_visible(timeout=30_000)
+    expect(page.locator("aside").get_by_text("Running", exact=True)).to_have_count(
+        0, timeout=30_000
+    )
+
+
 def save_run(page: Page, base_url: str, rec: Recorder, task_id: str, key: str, title: str) -> dict:
     record = page.request.get(f"{base_url}/tasks/{task_id}").json()
     (rec.out / "runs" / f"{key}.json").write_text(json.dumps(record, indent=2))
@@ -177,6 +187,7 @@ def run_demo(base_url: str, out: Path, provider: str) -> None:
                         "with a Cancel button.",
                     )
                 expect(finished_badge(page)).to_be_visible(timeout=180_000)
+                settle(page, findings=True)
                 rec.shot(
                     page,
                     f"{scenario['key']}-result",
@@ -193,6 +204,7 @@ def run_demo(base_url: str, out: Path, provider: str) -> None:
             page.locator("main ol li").first.wait_for(timeout=30_000)
             page.get_by_role("button", name="Cancel run").click()
             expect(main_badge(page, "Cancelled")).to_be_visible(timeout=120_000)
+            settle(page)
             rec.shot(page, "cancelled", "A run cancelled part-way: finished steps are kept.")
             save_run(page, base_url, rec, task_id, "cancelled", "Cancel a run part-way")
 
