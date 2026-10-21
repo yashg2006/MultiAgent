@@ -54,5 +54,18 @@ class Settings(BaseSettings):
     # "none" (default; no network) or "wikipedia" (free, no key).
     search_tool: str = "none"
 
+    # --- Persistence and execution -------------------------------------------
+    # SQLite for local dev/tests; Postgres in Docker Compose, e.g.
+    # postgresql+psycopg://user:pass@postgres:5432/multiagent
+    database_url: str = "sqlite:///./tasks.db"
+    # "inline": run tasks in the API process (dev/tests, no Redis needed).
+    # "redis": enqueue to Redis; separate worker processes run them.
+    queue_backend: str = "inline"
+    redis_url: str = "redis://localhost:6379/0"
+    # Live step stream: how often the API checks for new steps, and how often
+    # it sends a keep-alive comment so proxies don't drop idle connections.
+    sse_poll_seconds: float = 0.5
+    sse_keepalive_seconds: float = 15.0
+
 
 settings = Settings()
