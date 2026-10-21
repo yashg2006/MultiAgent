@@ -66,14 +66,24 @@ This document defines the test plan, test strategy, and test cases for the Multi
 
 ## 3. Test Cases
 
-> **Verification note:** The repo's own dev sandbox used to prepare this phase had no
-> outbound internet access, so `pytest` itself could not be installed/run here. Every
-> row below was instead verified by direct execution of the real source against a
-> locally-stubbed `pydantic-settings` shim (the only missing dependency) — i.e. the
-> actual `Orchestrator`/`Agent`/`retry` code ran, not a hand-simulated version. The
-> automated `pytest` suite in `tests/` encodes these same cases and will re-confirm
+> **Verification note (Phases A-C, §3.1-3.6 below):** The dev sandbox used to prepare
+> these phases had no outbound internet access, so `pytest` itself could not be
+> installed/run here. Every row was instead verified by direct execution of the real
+> source against a locally-stubbed `pydantic-settings` shim (the only missing
+> dependency) — i.e. the actual `Orchestrator`/`Agent`/`retry` code ran, not a
+> hand-simulated version.
+>
+> **Verification note (Phase D, API test cases below):** `fastapi`, `sqlalchemy`, and
+> `httpx` are not installed in this sandbox and could not be installed (no network
+> access), so `tests/test_api.py` could **not** be executed or verified by direct
+> execution the way Phases A-C were. The tests are written to the same standard and
+> were checked by careful manual code review instead, but they are genuinely unrun —
+> treat their first real `pytest` execution (CI or a contributor's machine) as the
+> actual verification, not a formality.
+>
+> The automated `pytest` suite in `tests/` encodes all cases below and will confirm
 > them (and report real coverage, see §6.3) the first time CI or a contributor with
-> network access runs it — expected to simply reproduce what's recorded here.
+> network access runs it.
 
 ### 3.1 Unit Test Cases — Orchestrator
 
@@ -128,6 +138,16 @@ This document defines the test plan, test strategy, and test cases for the Multi
 | IT-04 | Full pipeline executes without exceptions (Mock provider) | Complete task input | Final aggregated `RunResult` returned | `status="success"`, no exception | Pass |
 | IT-05 | Pipeline handles agent failure mid-execution | Research Agent double that always raises, `max_retries=2` | Graceful handling, `status="partial"` after retries exhausted | `status="partial"`, `retries_used=2`, every sub-task entry carries `error` | Pass |
 | IT-06 | Planner failure short-circuits the pipeline | Planner double returning `status="error"` | `status="error"`, Research/Validator never dispatched | `status="error"`, `steps == ["planner"]` | Pass |
+
+### 3.7a API Test Cases (Phase D — written, not yet executed; see verification note above)
+
+| Test ID | Test Description | Input | Expected Output | Actual Output | Status |
+|---------|-----------------|-------|-----------------|---------------|--------|
+| API-01 | `GET /health` returns ok | N/A | `{"status": "ok"}`, HTTP 200 | Not run — see note above | Not Run |
+| API-02 | `POST /tasks` creates a task and the background run completes | `{"task": "..."}` | HTTP 201 `status="pending"`, then `GET` shows `status="success"` | Not run — see note above | Not Run |
+| API-03 | `POST /tasks` rejects an empty task string | `{"task": ""}` | HTTP 422 | Not run — see note above | Not Run |
+| API-04 | `GET /tasks/{id}` on an unknown id | Random id | HTTP 404 | Not run — see note above | Not Run |
+| API-05 | `GET /tasks` lists tasks most-recent-first | 2 created tasks | Second task's id appears before the first's | Not run — see note above | Not Run |
 
 ### 3.7 System Test Cases
 
