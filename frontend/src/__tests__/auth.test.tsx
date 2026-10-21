@@ -36,7 +36,7 @@ describe("auth", () => {
 
   it("sends signed-out visitors to the sign-in page", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ detail: "x" }, 401));
-    renderApp("/tasks/abc");
+    renderApp("/runs/abc");
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
   });
 

@@ -70,7 +70,9 @@ export function App() {
       <Route path="register" element={<AuthPage mode="register" />} />
       <Route element={<Shell />}>
         <Route index element={<StartPage />} />
-        <Route path="tasks/:id" element={<TaskPage />} />
+        {/* Run pages live under /runs, not /tasks: /tasks/* is the API, and sharing
+            one path made reloads and shared links return JSON. */}
+        <Route path="runs/:id" element={<TaskPage />} />
       </Route>
     </Routes>
   );
