@@ -51,6 +51,9 @@ made and what they cost. All options are listed in `.env.example`.
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| `POST` | `/auth/register` | Create an account `{"email", "password"}` and sign in (sets an httpOnly session cookie). |
+| `POST` | `/auth/login` / `/auth/logout` | Sign in / out. |
+| `GET` | `/auth/me` | The signed-in user (401 if signed out). |
 | `POST` | `/tasks` | Start a run: `{"task": "..."}`. Returns immediately with `status: "pending"`. |
 | `GET` | `/tasks/{id}` | A run's status, findings, retry count, usage, and steps so far. |
 | `GET` | `/tasks/{id}/events` | Live step stream (Server-Sent Events); resumes with `Last-Event-ID`. |
@@ -58,6 +61,8 @@ made and what they cost. All options are listed in `.env.example`.
 | `GET` | `/tasks` | Recent runs, newest first. |
 | `GET` | `/health` | Liveness check. |
 | `GET` | `/ready` | Readiness: database and queue reachable (503 otherwise). |
+
+All `/tasks` routes require sign-in and only return your own runs.
 
 ## Configuration
 
@@ -75,6 +80,8 @@ made and what they cost. All options are listed in `.env.example`.
 | `QUEUE_BACKEND` | `inline` | `inline` runs tasks in the API process; `redis` hands them to workers |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis for `QUEUE_BACKEND=redis` |
 | `AUTO_MIGRATE` | `true` | Apply database migrations when the API starts |
+| `JWT_SECRET` | (random per process) | Session signing key; **required** when `ENV=production` |
+| `COOKIE_SECURE` | `false` | Send the session cookie over HTTPS only (enable behind TLS) |
 | `CORS_ORIGINS` | `http://localhost:5173` | Browser origins allowed to call the API (comma-separated) |
 | `VITE_API_URL` | (empty) | Frontend only: API base URL for a deployed build; the dev server proxies to port 8000 |
 

@@ -80,7 +80,7 @@ jobs:
         TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/multiagent_test
         REDIS_URL: redis://localhost:6379/0
       run: |
-        python -m pytest tests/test_api.py tests/test_worker.py tests/test_migrations.py \
+        python -m pytest tests/test_api.py tests/test_auth.py tests/test_worker.py tests/test_migrations.py \
           -p no:cacheprovider -q -rs --junitxml=integration.xml
         python - <<'PY'
         import xml.etree.ElementTree as ET

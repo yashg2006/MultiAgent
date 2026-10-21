@@ -68,16 +68,25 @@
 
 ### 1.4 Scope
 
+The original scope excluded multi-user access and production deployment. Both
+were brought into scope during the project (Phase F); this section lists what
+is actually implemented.
+
 **In Scope:**
-- Orchestrator-driven multi-agent workflow execution
-- Research, planning, and validation agent capabilities
-- Automated test pipeline via GitHub Actions
-- [Additional scope item]
+- Orchestrator-driven multi-agent workflow execution, with dependency-ordered
+  parallel research and validator-driven retries
+- Research, planning, and validation agents backed by a real LLM (Anthropic
+  Claude) or a free offline Mock
+- HTTP API and web UI with live progress, cancellation, and run history
+- Multiple users with accounts, per-user isolation, and rate limits
+- Queue-based execution on separate worker processes (Redis), Postgres storage
+- Automated test pipeline via GitHub Actions, including Postgres/Redis integration tests
 
 **Out of Scope:**
-- Real-time deployment at production scale
-- Multi-user concurrent access handling
-- [Additional exclusion]
+- Public internet hosting with uptime guarantees (the system is deployable, but
+  is not operated as a public service)
+- Independent security penetration testing
+- Billing, quotas beyond rate limits, and organisation/team accounts
 
 ---
 
@@ -323,7 +332,11 @@ The API persists runs with SQLAlchemy (`src/shared/db.py`) in SQLite for
 development and Postgres in deployment. The schema is versioned with Alembic
 (`migrations/`), and a test fails if the models and migrations disagree.
 
-**`tasks`** — one row per orchestrator run:
+**`users`** — accounts: `id` (PK), `email` (unique, lower-cased), `password_hash`
+(bcrypt), `created_at`.
+
+**`tasks`** — one row per orchestrator run (`user_id` → `users.id`, indexed, so
+each user sees only their own runs):
 
 | Column | Type | Description |
 |--------|------|--------------|

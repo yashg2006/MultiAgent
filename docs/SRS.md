@@ -67,7 +67,7 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 |------------|-------------|----------------------|
 | Developer / Researcher | Primary user who submits tasks via CLI or programmatic API | High |
 | Course Evaluator | Faculty reviewing system functionality and code quality | Medium–High |
-| End User | Submits goals and reviews runs through the web UI (`frontend/`), without using the CLI or API directly | Low–Medium |
+| End User | Has an account; submits goals and reviews their own runs through the web UI (`frontend/`), without using the CLI or API directly | Low–Medium |
 
 ### 2.4 Operating Environment
 
@@ -153,6 +153,16 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | FR-A-05 | `GET /ready` shall report whether the database and queue are reachable (HTTP 503 if not); `GET /health` reports liveness only. | Medium |
 | FR-A-06 | The database schema shall be versioned with Alembic migrations that can be applied and reversed. | Medium |
 
+#### 3.1.7 Accounts and Access
+
+| Req ID | Requirement | Priority |
+|--------|-------------|----------|
+| FR-U-01 | Users shall register and sign in with an email (case-insensitive, unique) and a password of 8–72 bytes; passwords are stored only as bcrypt hashes. | High |
+| FR-U-02 | A signed-in session shall be a signed, expiring token (default 12 h) in an httpOnly, SameSite=Strict cookie; scripts may send it as a Bearer token. Signing out clears it. | High |
+| FR-U-03 | Every task operation shall require a signed-in user and only ever see that user's runs; another user's run shall be indistinguishable from a missing one (HTTP 404). | High |
+| FR-U-04 | Failed sign-ins shall return one message regardless of whether the email exists, with equal hashing work in both cases. | Medium |
+| FR-U-05 | Sign-in/registration attempts per client IP and new runs per user shall be rate-limited per minute (defaults 10 and 20), answering HTTP 429 with `Retry-After`. | Medium |
+
 ### 3.2 Non-Functional Requirements
 
 | Req ID | Category | Requirement |
@@ -161,7 +171,7 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | NFR-02 | **Scalability** | The architecture shall support addition of new agent types without modifying the orchestrator core logic. The API shall be stateless (all state in the database and queue), so API instances and worker processes can be scaled independently. |
 | NFR-03 | **Reliability** | Every LLM call shall be retried on transient errors only (connection/timeout, HTTP 429, HTTP 5xx) up to `LLM_MAX_ATTEMPTS` (default 3) with exponential backoff and jitter, and shall pass through a circuit breaker that fails fast for `CIRCUIT_RESET_SECONDS` (default 30) after `CIRCUIT_FAILURE_THRESHOLD` (default 5) consecutive failures. Each call has a timeout (`LLM_TIMEOUT_SECONDS`, default 60). |
 | NFR-04 | **Maintainability** | All source code shall follow PEP 8 standards and include module-level and function-level docstrings. |
-| NFR-05 | **Security** | API keys, tokens, and secrets shall be supplied only through environment variables (`.env`, excluded via `.gitignore`, or CI secrets) and never committed or logged. |
+| NFR-05 | **Security** | API keys, tokens, and secrets shall be supplied only through environment variables (`.env`, excluded via `.gitignore`, or CI secrets) and never committed or logged. The service shall refuse to start in production without a session-signing secret. |
 | NFR-06 | **Usability** | The system shall provide clear error messages and execution logs. |
 | NFR-07 | **Portability** | The system shall run on Windows, macOS, and Linux without platform-specific modifications. |
 | NFR-08 | **Testability** | All modules shall be testable in isolation using mock objects for external dependencies. |

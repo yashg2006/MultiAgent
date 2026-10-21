@@ -208,6 +208,22 @@ frontend: 27/27.
 | API-09..21 | API (`test_api.py`) | Blank/over-long input → 422; input trimmed; steps returned in order with seq; list omits steps; SSE replays steps then `status` and `done`; resume after `Last-Event-ID`; 404 for unknown stream/cancel; 409 cancelling a finished run; cancel sets the flag on a queued run; `/ready` 200, and 503 when the database is unreachable | Pass |
 | FE-22..27 | Frontend (`useTaskStream.test.tsx`, `RunTrace.test.tsx`) | Stream opens the run's URL and merges steps without duplicates; status and done applied, stream closed; reconnecting state; closed on disable/unmount; empty live trace; no "retries exhausted" claim while live | Pass |
 
+### 3.7f Accounts and Access Test Cases (Phase F3)
+
+From CI run [39627228463](https://github.com/yashg2006/MultiAgent/actions/runs/39627228463)
+(PR #6): all pass; backend 151 test functions, coverage **98% (1274 statements,
+29 missed)** with `src/api/auth.py` at 100% and `src/api/rate_limit.py` at 98%;
+frontend 31/31. All existing API tests now run as a signed-in user.
+
+| Test ID | What is verified (`test_auth.py`, `auth.test.tsx`) | Status |
+|---------|------------------|--------|
+| AUTH-01..06 | Registration sets an httpOnly, SameSite=Strict cookie and never echoes the password; email normalised and duplicates rejected (409); invalid email, short password and >72-byte password rejected (422) | Pass |
+| AUTH-07..10 | Sign-in/sign-out round trip; logout expires the cookie; wrong password and unknown email get the identical 401; hashes are salted and verify correctly | Pass |
+| AUTH-11..15 | All task routes and `/auth/me` return 401 when signed out; tampered and expired tokens rejected; token for a deleted user rejected; production refuses to start without `JWT_SECRET`; development key is random but stable per process | Pass |
+| AUTH-16 | Isolation: a second user sees an empty list and 404 for the first user's run, stream and cancel; the owner still sees it | Pass |
+| AUTH-17..21 | Sign-in attempts limited per IP (401, 401, 429); runs limited per user with `Retry-After`; in-memory window resets each minute; Redis limiter counts and expires keys; `X-Forwarded-For` trusted only when configured | Pass |
+| FE-28..31 | `getMe` returns null when signed out; signed-out visitors redirected to sign-in; sign-in returns to the app showing the user; API validation messages shown as plain sentences | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
@@ -292,3 +308,4 @@ handler in `src/api/routes.py`.
 | 1.1 | 21/10/2026 | Yash Gharat (with Claude Code) | Filled test-case results from CI; added API (§3.7a) and LLM provider (§3.7b) cases; recorded measured coverage (§6) |
 | 1.2 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase E (§3.7c) and Phase F1 (§3.7d) cases; coverage refreshed to 97.5% |
 | 1.3 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F2 infrastructure cases (§3.7e), incl. Postgres/Redis integration pass |
+| 1.4 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F3 accounts and access cases (§3.7f) |
