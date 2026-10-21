@@ -14,11 +14,31 @@ class AgentRequest(BaseModel):
     metadata: dict[str, Any] | None = None
 
 
+class LLMUsage(BaseModel):
+    """Token and cost accounting for one or more LLM calls."""
+
+    calls: int = 0
+    retries: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0
+
+    def __add__(self, other: "LLMUsage") -> "LLMUsage":
+        return LLMUsage(
+            calls=self.calls + other.calls,
+            retries=self.retries + other.retries,
+            input_tokens=self.input_tokens + other.input_tokens,
+            output_tokens=self.output_tokens + other.output_tokens,
+            cost_usd=round(self.cost_usd + other.cost_usd, 8),
+        )
+
+
 class AgentResponse(BaseModel):
     task_id: str
     status: str
     result: dict[str, Any] | None = None
     error: str | None = None
+    usage: LLMUsage | None = None
 
 
 class SubTask(BaseModel):
@@ -56,10 +76,15 @@ class RunStep(BaseModel):
     status: str
     latency_seconds: float
     detail: dict[str, Any] | None = None
+    sub_task_id: str | None = None
+    usage: LLMUsage = Field(default_factory=LLMUsage)
 
 
 class RunResult(BaseModel):
-    """Final output of an Orchestrator.run() call."""
+    """Final output of an Orchestrator.run() call.
+
+    `status` is one of "success", "partial", "error", or "cancelled".
+    """
 
     task_id: str
     status: str
@@ -67,3 +92,4 @@ class RunResult(BaseModel):
     error: str | None = None
     steps: list[RunStep] = Field(default_factory=list)
     retries_used: int = 0
+    usage: LLMUsage = Field(default_factory=LLMUsage)

@@ -92,3 +92,22 @@ def test_call_with_retry_does_not_retry_on_unlisted_exception_type():
 def test_call_with_retry_rejects_invalid_max_retries():
     with pytest.raises(ValueError):
         call_with_retry(lambda: "x", max_retries=0)
+
+
+def test_call_with_retry_reports_each_retry():
+    seen = []
+    attempts = {"n": 0}
+
+    def flaky():
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise ValueError(f"fail {attempts['n']}")
+        return "ok"
+
+    call_with_retry(
+        flaky,
+        max_retries=3,
+        sleep_fn=lambda _: None,
+        on_retry=lambda attempt, err: seen.append((attempt, str(err))),
+    )
+    assert seen == [(1, "fail 1"), (2, "fail 2")]
