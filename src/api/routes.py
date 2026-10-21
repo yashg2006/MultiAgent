@@ -1,22 +1,28 @@
 """
-API routes for submitting and inspecting multi-agent pipeline runs.
+API routes for submitting, watching, and cancelling pipeline runs.
 
-POST /tasks   - submit a task; runs in the background, returns immediately
-                with status="pending"
-GET  /tasks   - list all tasks (most recent first)
-GET  /tasks/{id} - fetch a single task's current status/result
+POST /tasks              start a run (returns immediately, status "pending")
+GET  /tasks              recent runs, newest first (without step detail)
+GET  /tasks/{id}         one run, including its steps so far
+GET  /tasks/{id}/events  live step stream (Server-Sent Events)
+POST /tasks/{id}/cancel  ask a queued or running run to stop
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 import uuid
+from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 
 from src.api.schemas import TaskCreateRequest, TaskOut
-from src.orchestrator.main import Orchestrator
-from src.shared.db import TaskRecord, get_session, serialize_steps
+from src.shared.config import settings
+from src.shared.db import TERMINAL_STATUSES, RunStepRecord, TaskRecord, session_scope
 from src.shared.schemas import LLMUsage
 from src.shared.utils import setup_logger
 
@@ -24,7 +30,7 @@ logger = setup_logger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def _usage_from_steps(steps: list[dict] | None) -> dict | None:
+def _usage_total(steps: list[dict]) -> dict | None:
     if not steps:
         return None
     total = LLMUsage()
@@ -34,95 +40,153 @@ def _usage_from_steps(steps: list[dict] | None) -> dict | None:
     return total.model_dump()
 
 
-def _to_task_out(record: TaskRecord) -> TaskOut:
+def _to_task_out(record: TaskRecord, steps: list[dict] | None) -> TaskOut:
     return TaskOut(
-        usage=_usage_from_steps(record.steps_json),
         id=record.id,
         input_task=record.input_task,
         status=record.status,
         result=record.result_json,
         error=record.error,
         retries_used=record.retries_used,
-        steps=record.steps_json,
+        cancel_requested=record.cancel_requested,
+        steps=steps,
+        usage=_usage_total(steps or []),
         created_at=record.created_at,
         updated_at=record.updated_at,
     )
 
 
-def _run_task_in_background(task_id: str, input_task: str) -> None:
-    """
-    Execute the orchestrator pipeline and persist the outcome.
-
-    Runs via FastAPI's BackgroundTasks, which executes sync callables in a
-    threadpool so it never blocks the event loop. Opens its own DB session
-    since the request-scoped one is already closed by the time this runs.
-    """
-    session: Session = get_session()
-    try:
-        orchestrator = Orchestrator()
-        result = orchestrator.run(input_task, task_id=task_id)
-
+def _load_task(task_id: str, *, after_seq: int = 0) -> tuple[TaskOut, list[dict]] | None:
+    """The task plus its steps with seq > after_seq (all steps if 0)."""
+    with session_scope() as session:
         record = session.get(TaskRecord, task_id)
         if record is None:
-            logger.error("Task record %s disappeared before background run completed", task_id)
-            return
+            return None
+        rows = session.scalars(
+            select(RunStepRecord)
+            .where(RunStepRecord.task_id == task_id, RunStepRecord.seq > after_seq)
+            .order_by(RunStepRecord.seq)
+        ).all()
+        new_steps = [row.to_dict() for row in rows]
+        if after_seq == 0:
+            return _to_task_out(record, new_steps), new_steps
+        return _to_task_out(record, None), new_steps
 
-        record.status = result.status
-        record.result_json = result.result
-        record.error = result.error
-        record.retries_used = result.retries_used
-        record.steps_json = serialize_steps(result.steps)
-        session.commit()
-    except Exception:  # noqa: BLE001 - a crash here must still leave a readable task record
-        logger.exception("Background orchestrator run failed for task_id=%s", task_id)
-        record = session.get(TaskRecord, task_id)
-        if record is not None:
-            record.status = "error"
-            record.error = "Internal error while running the pipeline."
-            session.commit()
-    finally:
-        session.close()
+
+def _get_or_404(task_id: str) -> TaskOut:
+    loaded = _load_task(task_id)
+    if loaded is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found.")
+    return loaded[0]
 
 
 @router.post("", response_model=TaskOut, status_code=201)
-def create_task(request: TaskCreateRequest, background_tasks: BackgroundTasks) -> TaskOut:
-    """Submit a new task. The pipeline runs asynchronously; poll GET /tasks/{id} for the result."""
+async def create_task(
+    payload: TaskCreateRequest, request: Request, background_tasks: BackgroundTasks
+) -> TaskOut:
+    """Start a run. Follow it with GET /tasks/{id}/events or poll GET /tasks/{id}."""
     task_id = str(uuid.uuid4())
-    session = get_session()
-    try:
-        record = TaskRecord(id=task_id, input_task=request.task, status="pending")
-        session.add(record)
-        session.commit()
-        session.refresh(record)
-        task_out = _to_task_out(record)
-    finally:
-        session.close()
 
-    background_tasks.add_task(_run_task_in_background, task_id, request.task)
+    def insert() -> TaskOut:
+        with session_scope() as session:
+            record = TaskRecord(id=task_id, input_task=payload.task, status="pending")
+            session.add(record)
+            session.flush()
+            return _to_task_out(record, [])
+
+    task_out = await run_in_threadpool(insert)
+    await request.app.state.queue.enqueue(task_id, background_tasks)
     return task_out
 
 
 @router.get("", response_model=list[TaskOut])
 def list_tasks(limit: int = 50) -> list[TaskOut]:
-    """List tasks, most recently created first."""
-    session = get_session()
-    try:
-        records = (
-            session.query(TaskRecord).order_by(TaskRecord.created_at.desc()).limit(limit).all()
-        )
-        return [_to_task_out(r) for r in records]
-    finally:
-        session.close()
+    """Recent runs, newest first. Steps are omitted; fetch a run for them."""
+    with session_scope() as session:
+        records = session.scalars(
+            select(TaskRecord).order_by(TaskRecord.created_at.desc()).limit(min(limit, 200))
+        ).all()
+        return [_to_task_out(r, None) for r in records]
 
 
 @router.get("/{task_id}", response_model=TaskOut)
 def get_task(task_id: str) -> TaskOut:
-    """Fetch a single task's current status and result."""
-    session = get_session()
-    try:
+    """A run's current status, result, and steps so far."""
+    return _get_or_404(task_id)
+
+
+@router.post("/{task_id}/cancel", response_model=TaskOut, status_code=202)
+def cancel_task(task_id: str) -> TaskOut:
+    """Ask a run to stop. It stops between stages, keeping finished work."""
+    with session_scope() as session:
         record = session.get(TaskRecord, task_id)
         if record is None:
             raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found.")
-        return _to_task_out(record)
-    finally:
-        session.close()
+        if record.status in TERMINAL_STATUSES:
+            raise HTTPException(
+                status_code=409, detail=f"Task already finished with status {record.status!r}."
+            )
+        record.cancel_requested = True
+    return _get_or_404(task_id)
+
+
+def _sse(event: str, data: object, event_id: int | None = None) -> str:
+    lines = []
+    if event_id is not None:
+        lines.append(f"id: {event_id}")
+    lines.append(f"event: {event}")
+    lines.append(f"data: {json.dumps(data, default=str)}")
+    return "\n".join(lines) + "\n\n"
+
+
+@router.get("/{task_id}/events")
+async def task_events(task_id: str, request: Request) -> StreamingResponse:
+    """
+    Server-Sent Events for one run:
+      event: step    one finished step (event id = its seq)
+      event: status  the run's status changed
+      event: done    final task (same shape as GET /tasks/{id}); stream ends
+    Reconnecting clients send Last-Event-ID and resume after that step.
+    """
+    if await run_in_threadpool(_load_task, task_id, after_seq=10**9) is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found.")
+    try:
+        last_seq = int(request.headers.get("last-event-id") or 0)
+    except ValueError:
+        last_seq = 0
+
+    async def stream() -> AsyncIterator[str]:
+        nonlocal last_seq
+        last_status: str | None = None
+        since_keepalive = 0.0
+        yield "retry: 2000\n\n"
+        while True:
+            if await request.is_disconnected():
+                return
+            loaded = await run_in_threadpool(_load_task, task_id, after_seq=last_seq)
+            if loaded is None:
+                return
+            task, new_steps = loaded
+            for step in new_steps:
+                last_seq = step["seq"]
+                yield _sse("step", step, event_id=step["seq"])
+            if task.status != last_status:
+                last_status = task.status
+                yield _sse(
+                    "status", {"status": task.status, "cancel_requested": task.cancel_requested}
+                )
+            if task.status in TERMINAL_STATUSES:
+                final = await run_in_threadpool(_get_or_404, task_id)
+                yield _sse("done", final.model_dump(mode="json"))
+                return
+            await asyncio.sleep(settings.sse_poll_seconds)
+            since_keepalive += settings.sse_poll_seconds
+            if since_keepalive >= settings.sse_keepalive_seconds:
+                since_keepalive = 0.0
+                yield ": keep-alive\n\n"
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
