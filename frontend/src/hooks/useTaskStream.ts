@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { taskEventsUrl } from "../api";
-import type { RunStep, Task } from "../types";
+import { FINISHED_STATUSES, type RunStep, type Task } from "../types";
 
 export type StreamState = "connecting" | "live" | "reconnecting" | "closed";
 
@@ -43,7 +43,14 @@ export function useTaskStream(id: string, enabled: boolean): StreamState {
         Task,
         "status" | "cancel_requested"
       >;
-      update((task) => ({ ...task, status, cancel_requested }));
+      // A finished status would flip `enabled` to false and close the stream
+      // before the "done" event (which carries the result) arrives. Let "done"
+      // apply the final status; here only reflect progress, e.g. cancel pending.
+      update((task) =>
+        FINISHED_STATUSES.has(status)
+          ? { ...task, cancel_requested }
+          : { ...task, status, cancel_requested },
+      );
     };
     const onDone = (event: MessageEvent<string>) => {
       queryClient.setQueryData<Task>(["task", id], JSON.parse(event.data) as Task);
