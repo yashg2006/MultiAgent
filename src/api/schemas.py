@@ -23,5 +23,7 @@ class TaskOut(BaseModel):
     error: str | None = None
     retries_used: int | None = None
     steps: list[dict[str, Any]] | None = None
+    # Totals across all steps: calls, retries, input/output tokens, cost_usd.
+    usage: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
