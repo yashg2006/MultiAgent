@@ -101,10 +101,18 @@ def register(page: Page, base_url: str, email: str, rec: Recorder | None = None)
 
 
 def start_run(page: Page, task: str) -> str:
+    """Submit a goal and return the new run's id once its page is showing."""
+    previous_url = page.url
     page.get_by_label("What should the agents work on?").fill(task)
     page.get_by_role("button", name="Run task").click()
-    page.wait_for_url(re.compile(r".*/tasks/[0-9a-f-]+$"))
-    return page.url.rsplit("/", 1)[-1]
+    # Wait for a *different* run page: after the first scenario the browser is
+    # already on /runs/<previous id>, which also matches the pattern.
+    page.wait_for_url(
+        lambda url: url != previous_url and re.search(r"/runs/[0-9a-f-]+$", url) is not None
+    )
+    task_id = page.url.rsplit("/", 1)[-1]
+    expect(page.locator("main h2")).to_contain_text(task[:40])
+    return task_id
 
 
 def main_badge(page: Page, label: str):
@@ -161,7 +169,7 @@ def run_demo(base_url: str, out: Path, provider: str) -> None:
                 first_run_url = first_run_url or page.url
                 if scenario.get("watch_live"):
                     # Catch the run mid-flight: some steps done, the rest still running.
-                    page.locator("main li").first.wait_for(timeout=30_000)
+                    page.locator("main ol li").first.wait_for(timeout=30_000)
                     rec.shot(
                         page,
                         f"{scenario['key']}-live",
@@ -181,7 +189,8 @@ def run_demo(base_url: str, out: Path, provider: str) -> None:
 
             # Cancel a run part-way through.
             task_id = start_run(page, CANCEL_TASK)
-            page.locator("main li").first.wait_for(timeout=30_000)
+            # Cancel once the planner has finished, while research is under way.
+            page.locator("main ol li").first.wait_for(timeout=30_000)
             page.get_by_role("button", name="Cancel run").click()
             expect(main_badge(page, "Cancelled")).to_be_visible(timeout=120_000)
             rec.shot(page, "cancelled", "A run cancelled part-way: finished steps are kept.")
