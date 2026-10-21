@@ -90,9 +90,16 @@ class Orchestrator:
             )
             steps.append(validator_step)
 
-            if validator_response.status == "success" and validator_response.result:
+            # The Validator Agent returns status="success" when validation passed,
+            # status="rejected" when it ran but the result failed validation (reasons
+            # are still present in `result`), or status="error" if the Validator
+            # itself failed to run at all (no `result` to read reasons from).
+            if validator_response.result is not None:
                 validation = validator_response.result["validation"]
-                if validation["status"] == ValidationStatus.PASS.value:
+                if (
+                    validator_response.status == "success"
+                    and validation["status"] == ValidationStatus.PASS.value
+                ):
                     return RunResult(
                         task_id=task_id,
                         status="success",
@@ -100,7 +107,7 @@ class Orchestrator:
                         steps=steps,
                         retries_used=attempt - 1,
                     )
-                last_validation_reasons = validation.get("reasons", [])
+                last_validation_reasons = validation.get("reasons") or ["validation failed"]
             else:
                 last_validation_reasons = [validator_response.error or "validator error"]
 
