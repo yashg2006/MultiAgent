@@ -56,6 +56,7 @@ describe("api client", () => {
       .mockResolvedValue(new Response(JSON.stringify(task), { status: 201 }));
     await createTask("Compare EDF and RMS");
     expect(fetchMock).toHaveBeenCalledWith("/tasks", {
+      credentials: "include",
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ task: "Compare EDF and RMS" }),

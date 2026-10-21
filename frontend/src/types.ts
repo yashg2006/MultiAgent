@@ -59,3 +59,10 @@ export interface Task {
   created_at: string;
   updated_at: string;
 }
+
+/** Mirrors `UserOut` in src/api/auth.py. */
+export interface User {
+  id: string;
+  email: string;
+  created_at: string;
+}
