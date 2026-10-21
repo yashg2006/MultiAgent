@@ -156,6 +156,23 @@ This document defines the test plan, test strategy, and test cases for the Multi
 | LLM-06..08 | `OpenAIProvider` via an injected fake `openai` module (offline) | Correct client/key wiring; system+user messages sent; system message omitted when not given | Pass |
 | LLM-09..10 | `safe_json_loads` | Dict for JSON objects; `None` for invalid JSON, arrays, `None` | Pass |
 
+### 3.7c API CORS and Frontend Test Cases (Phase E)
+
+Results from CI run [39616185724](https://github.com/yashg2006/MultiAgent/actions/runs/39616185724)
+(PR #3, commit `6d3b101`): Python job green; frontend job green — `tsc` clean, **17/17
+vitest tests passed**, and `vite build` succeeded (JS 214.50 kB / 69.10 kB gzip, CSS 12.23 kB).
+
+| Test ID | Test Description | Expected Output | Status |
+|---------|-----------------|-----------------|--------|
+| API-06 | CORS preflight from the configured dev origin | `access-control-allow-origin: http://localhost:5173` | Pass |
+| API-07 | Request from an unlisted origin | No `access-control-allow-origin` header | Pass |
+| FE-01..03 | `groupSteps` splits planner / research→validator attempts, keeps an open trailing attempt, handles planner-only runs | Correct grouping | Pass |
+| FE-04..07 | `RunTrace`: retried vs. final rejected attempt labels, latency in ms, step error detail, empty state | Rendered as specified | Pass |
+| FE-08..09 | `parseApiTime`: zone-less timestamps read as UTC; explicit offsets respected | Correct UTC instant | Pass |
+| FE-10..11 | `taskToMarkdown`: goal, status, problem, findings, failed sub-task, step table | Expected Markdown | Pass |
+| FE-12..14 | API client: JSON POST body, API `detail` surfaced, non-JSON error falls back to status | As specified | Pass |
+| FE-15..17 | `TaskComposer`: disabled until a goal is typed, submits and navigates, shows recovery hint when the API is unreachable | As specified | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |

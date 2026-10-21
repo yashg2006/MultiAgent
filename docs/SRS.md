@@ -67,7 +67,7 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 |------------|-------------|----------------------|
 | Developer / Researcher | Primary user who submits tasks via CLI or programmatic API | High |
 | Course Evaluator | Faculty reviewing system functionality and code quality | Medium–High |
-| End User (Future) | Non-technical user interacting via a web UI (future scope) | Low–Medium |
+| End User | Submits goals and reviews runs through the web UI (`frontend/`), without using the CLI or API directly | Low–Medium |
 
 ### 2.4 Operating Environment
 

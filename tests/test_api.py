@@ -53,6 +53,23 @@ def test_health_endpoint(client):
     assert response.json() == {"status": "ok"}
 
 
+def test_cors_allows_configured_dev_origin(client):
+    response = client.options(
+        "/tasks",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_cors_rejects_unlisted_origin(client):
+    response = client.get("/health", headers={"Origin": "http://evil.example"})
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_create_task_returns_pending_then_completes(client):
     response = client.post("/tasks", json={"task": "Summarize multi-agent systems"})
     assert response.status_code == 201

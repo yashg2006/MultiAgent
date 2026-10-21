@@ -1,44 +1,92 @@
-# Multi-Agent AI System - Software Engineering Course Project
+# Multi-Agent AI System
 
-## Project Title
-**Multi-Agent AI System**
+[![Python Tests](https://github.com/yashg2006/MultiAgent/actions/workflows/tests.yml/badge.svg)](https://github.com/yashg2006/MultiAgent/actions/workflows/tests.yml)
 
-## Problem Statement
-Brief description of the problem your multi-agent AI system aims to solve, the motivations behind the project, and key objective goals for the semester.
+A Software Engineering course project (VIT Chennai) in which an orchestrator
+coordinates three agents to work on a goal:
 
-## Team Members
-- Student 1 - Role / Lead
-- Student 2 - Role / Developer
-- Student 3 - Role / Tester
+1. **Planner** breaks the goal into sub-tasks.
+2. **Research** works on each sub-task.
+3. **Validator** checks the combined result; if it fails, the orchestrator
+   retries the research→validate cycle (up to 3 times by default) and otherwise
+   returns a partial result with the reasons.
 
-## Quick Start & Setup Instructions
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd <repository-folder>
-   ```
+It ships with a FastAPI backend, a SQLite run history, and a React web UI that
+shows each run's step trace, including validator retries.
 
-2. **Create and activate a virtual environment:**
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
+## Team
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+- Yash Gharat (24BRS1357)
+- Dhanika Bhat (24BRS1356)
+- Ayushi Singh (24BRS1369)
 
-4. **Environment Configuration:**
-   Copy `.env.example` to `.env` and fill in any required environment variables/API keys:
-   ```bash
-   cp .env.example .env
-   ```
+## Quick start
 
-5. **Run Tests:**
-   ```bash
-   pytest
-   ```
+Requires Python 3.10+ and Node.js 20+.
+
+```bash
+git clone https://github.com/yashg2006/MultiAgent.git
+cd MultiAgent
+
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env              # optional; defaults work as-is
+
+# Terminal 1: API on http://localhost:8000 (docs at /docs)
+uvicorn src.api.main:app --reload
+
+# Terminal 2: web UI on http://localhost:5173
+cd frontend
+npm install
+npm run dev
+```
+
+No API key is needed: the default `LLM_PROVIDER=mock` is a deterministic,
+offline stand-in for an LLM. To use OpenAI, `pip install openai`, then set
+`LLM_PROVIDER=openai` and `OPENAI_API_KEY` in `.env`.
+
+## API
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/tasks` | Start a run: `{"task": "..."}`. Returns immediately with `status: "pending"`. |
+| `GET` | `/tasks/{id}` | A run's status, findings, retry count, and step trace. |
+| `GET` | `/tasks` | Recent runs, newest first. |
+| `GET` | `/health` | Liveness check. |
+
+## Configuration
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `LLM_PROVIDER` | `mock` | `mock` or `openai` |
+| `OPENAI_API_KEY` | (empty) | Required when `LLM_PROVIDER=openai` |
+| `MAX_RETRIES` | `3` | Validation attempts before returning a partial result |
+| `DATABASE_URL` | `sqlite:///./tasks.db` | Where runs are stored |
+| `CORS_ORIGINS` | `http://localhost:5173` | Browser origins allowed to call the API (comma-separated) |
+| `VITE_API_URL` | (empty) | Frontend only: API base URL for a deployed build; the dev server proxies to port 8000 |
+
+## Tests
+
+```bash
+pytest --cov=src                  # backend
+cd frontend && npm test           # frontend
+```
+
+CI runs lint (ruff, black), type checks (mypy, tsc), both test suites, and a
+production frontend build on every pull request, and posts coverage on the PR.
+Measured results are recorded in [`docs/test_plan.md`](docs/test_plan.md).
+
+## Repository layout
+
+```
+src/orchestrator/   pipeline coordination, retries, aggregation
+src/agents/         Planner, Research, Validator (shared Agent base class)
+src/shared/         schemas, config, LLM provider, retry helper, database
+src/api/            FastAPI app
+frontend/           React UI
+tests/              pytest suite
+docs/               SRS, architecture, test plan, sprint logs, reports
+```
+
+Contribution workflow: see [CONTRIBUTING.md](CONTRIBUTING.md).
