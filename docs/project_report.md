@@ -148,12 +148,12 @@
 
 | Use Case ID | UC-02 |
 |---|---|
-| **Name** | [Placeholder Use Case Name] |
-| **Actor(s)** | [Actor] |
-| **Precondition** | [Precondition] |
-| **Main Flow** | [Steps] |
-| **Postcondition** | [Postcondition] |
-| **Alternate Flow** | [Alternate flow] |
+| **Name** | Submit and Poll a Task via the HTTP API |
+| **Actor(s)** | Developer / Researcher (HTTP client) |
+| **Precondition** | The FastAPI app is running; database initialised. |
+| **Main Flow** | 1. Client `POST /tasks` with `{"task": "..."}`. 2. API returns `status="pending"` immediately and runs the pipeline in the background. 3. Client polls `GET /tasks/{id}` until a terminal status. |
+| **Postcondition** | Final result/error, retry count, and step trace are persisted and retrievable by id. |
+| **Alternate Flow** | Empty task string → HTTP 422. Unknown id → HTTP 404. Pipeline crash → task marked `status="error"` rather than stuck pending. |
 
 ### 3.5 Hardware and Software Requirements
 
@@ -316,9 +316,27 @@ classDiagram
 
 ### 4.6 Database / Data Schema Design
 
-> *[If applicable — insert ER diagram or describe the data persistence layer. For this project, data flows via in-memory Pydantic models; document that here.]*
+Inter-agent data transfer within a single pipeline run uses in-memory Pydantic
+schemas (`AgentRequest`, `AgentResponse`, `RunResult`) as described above.
+Phase D adds a persistence layer for the HTTP API (`src/shared/db.py`): a
+single-table SQLite schema (SQLAlchemy ORM) storing one row per orchestrator
+run.
 
-The system primarily uses in-memory structured data transfer via Pydantic schemas (`AgentRequest`, `AgentResponse`). No persistent relational database is used in the current scope. Intermediate results may be serialised to JSON files for debugging and audit trails.
+| Column | Type | Description |
+|--------|------|--------------|
+| `id` | String (PK) | UUID identifying the run; returned to the API client. |
+| `input_task` | String | The original task string submitted. |
+| `status` | String | `pending` / `success` / `partial` / `error`. |
+| `result_json` | JSON | The aggregated result dict (null until the run completes). |
+| `error` | String | Error or partial-failure explanation, if any. |
+| `retries_used` | Integer | How many validation-retry cycles ran. |
+| `steps_json` | JSON | Full step trace (agent name, status, latency, detail) for debugging. |
+| `created_at` / `updated_at` | DateTime | Timestamps, auto-managed. |
+
+SQLite was chosen over Postgres for this phase for zero-setup local/CI use;
+no application code depends on SQLite specifically; a Postgres connection
+string could be swapped in via `DATABASE_URL` without further changes, if
+ever wanted.
 
 ---
 
@@ -398,15 +416,14 @@ Contains cross-cutting concerns shared by all components:
 
 ### 6.3 Code Coverage
 
-The dev sandbox used for this phase of implementation had no outbound internet
-access, so `pytest`/`pytest-cov` could not be installed and a real `pytest --cov`
-run could not be executed here (see the verification note at the top of
-`docs/test_plan.md` §3 for how test cases were instead verified by direct
-execution of the real code). **The actual coverage percentage is not yet
-measured** and will be filled in from the first CI run (`.github/workflows/
-tests.yml` uploads a `coverage.xml` artifact) or a contributor's local
-`pytest --cov=src --cov-report=term-missing` — not estimated or invented here,
-per project policy against fabricated metrics.
+Measured with `pytest --cov=src` in GitHub Actions (run
+[39615268359](https://github.com/yashg2006/MultiAgent/actions/runs/39615268359),
+commit `8dd82b0`): **95.0% line coverage (417 statements, 21 missed)** across
+51 test functions, against a target of ≥ 70%. Every module-level target in
+`docs/test_plan.md` §6 is met; the full per-module table is there.
+
+CI now publishes the coverage total and per-module breakdown as annotations on
+every pull request, so this number stays visible as the code changes.
 
 ---
 
@@ -425,7 +442,7 @@ per project policy against fabricated metrics.
 | Average task completion time | [X seconds] | [Conditions] |
 | Agent success rate | [X%] | [Over N test runs] |
 | API call efficiency | [X calls per task] | [Average] |
-| Test coverage | [X%] | [Via pytest-cov] |
+| Test coverage | 95.0% | `pytest --cov=src`, CI run 39615268359 (see §6.3) |
 
 ### 7.3 Discussion
 

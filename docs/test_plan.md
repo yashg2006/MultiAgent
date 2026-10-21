@@ -60,20 +60,25 @@ This document defines the test plan, test strategy, and test cases for the Multi
 **Exit Criteria:**
 - All planned test cases are executed.
 - All critical and high-priority test cases pass.
-- Code coverage meets the minimum threshold ([target: 70%+]).
+- Code coverage meets the minimum threshold (target: ≥ 70% overall; see §6).
 
 ---
 
 ## 3. Test Cases
 
-> **Verification note:** The repo's own dev sandbox used to prepare this phase had no
-> outbound internet access, so `pytest` itself could not be installed/run here. Every
-> row below was instead verified by direct execution of the real source against a
-> locally-stubbed `pydantic-settings` shim (the only missing dependency) — i.e. the
-> actual `Orchestrator`/`Agent`/`retry` code ran, not a hand-simulated version. The
-> automated `pytest` suite in `tests/` encodes these same cases and will re-confirm
-> them (and report real coverage, see §6.3) the first time CI or a contributor with
-> network access runs it — expected to simply reproduce what's recorded here.
+> **How these results were obtained:** every "Pass" below is from a real `pytest` run
+> in GitHub Actions (`.github/workflows/tests.yml`, Python 3.10, `ubuntu-latest`) on
+> 21/10/2026 — run [39615268359](https://github.com/yashg2006/MultiAgent/actions/runs/39615268359)
+> on commit `8dd82b0` (branch `feature/minimal-api`), all steps green (ruff, black,
+> mypy, pytest). The suite contains 51 test functions (53
+> collected cases, counting one 3-way parametrized test) across `tests/`.
+>
+> History, for honesty: Phases A-C were first checked by direct execution of the real
+> source in a no-network dev sandbox (pytest could not be installed there), then
+> confirmed by CI. Phase D's API tests could not be run in that sandbox at all; their
+> **first CI run failed** at the mypy step (legacy SQLAlchemy `Column(...)` typing,
+> invisible locally because SQLAlchemy was not installed). That was fixed by moving
+> to SQLAlchemy 2.0 `Mapped[...]` declarations, after which the full suite passed.
 
 ### 3.1 Unit Test Cases — Orchestrator
 
@@ -129,6 +134,28 @@ This document defines the test plan, test strategy, and test cases for the Multi
 | IT-05 | Pipeline handles agent failure mid-execution | Research Agent double that always raises, `max_retries=2` | Graceful handling, `status="partial"` after retries exhausted | `status="partial"`, `retries_used=2`, every sub-task entry carries `error` | Pass |
 | IT-06 | Planner failure short-circuits the pipeline | Planner double returning `status="error"` | `status="error"`, Research/Validator never dispatched | `status="error"`, `steps == ["planner"]` | Pass |
 
+### 3.7a API Test Cases (Phase D, `tests/test_api.py`)
+
+| Test ID | Test Description | Input | Expected Output | Actual Output | Status |
+|---------|-----------------|-------|-----------------|---------------|--------|
+| API-01 | `GET /health` returns ok | N/A | `{"status": "ok"}`, HTTP 200 | As expected (CI) | Pass |
+| API-02 | `POST /tasks` creates a task and the background run completes | `{"task": "..."}` | HTTP 201 `status="pending"`, then `GET` shows `status="success"` | As expected (CI) | Pass |
+| API-03 | `POST /tasks` rejects an empty task string | `{"task": ""}` | HTTP 422 | As expected (CI) | Pass |
+| API-04 | `GET /tasks/{id}` on an unknown id | Random id | HTTP 404 | As expected (CI) | Pass |
+| API-05 | `GET /tasks` lists tasks most-recent-first | 2 created tasks | Second task's id appears before the first's | As expected (CI) | Pass |
+
+### 3.7b LLM Provider Test Cases (`tests/test_llm_provider.py`)
+
+| Test ID | Test Description | Expected Output | Status |
+|---------|-----------------|-----------------|--------|
+| LLM-01 | `get_provider("mock")` (any case/whitespace) | `MockLLMProvider` | Pass |
+| LLM-02 | `get_provider("openai")` with no key | `RuntimeError` naming `OPENAI_API_KEY` | Pass |
+| LLM-03 | `get_provider("<unknown>")` | `ValueError` | Pass |
+| LLM-04 | Mock `complete()` is deterministic and prompt-dependent | Same in → same out; different in → different out | Pass |
+| LLM-05 | Mock `complete_json()` | Structured dict with 8-char digest | Pass |
+| LLM-06..08 | `OpenAIProvider` via an injected fake `openai` module (offline) | Correct client/key wiring; system+user messages sent; system message omitted when not given | Pass |
+| LLM-09..10 | `safe_json_loads` | Dict for JSON objects; `None` for invalid JSON, arrays, `None` | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
@@ -161,16 +188,28 @@ This document defines the test plan, test strategy, and test cases for the Multi
 
 ---
 
-## 6. Code Coverage Target
+## 6. Code Coverage — Target vs. Measured
 
-| Module | Target Coverage |
-|--------|----------------|
-| `src/orchestrator/` | ≥ 70% |
-| `src/agents/research_agent/` | ≥ 70% |
-| `src/agents/planner_agent/` | ≥ 70% |
-| `src/agents/validator_agent/` | ≥ 70% |
-| `src/shared/` | ≥ 80% |
-| **Overall** | **≥ 70%** |
+Measured by `pytest --cov=src` in CI run
+[39615268359](https://github.com/yashg2006/MultiAgent/actions/runs/39615268359)
+(commit `8dd82b0`). Per-area figures are aggregated from CI's per-file report.
+
+| Module | Target | Measured (statements / missed) | Met? |
+|--------|--------|-------------------------------|------|
+| `src/orchestrator/` | ≥ 70% | 98.6% (69 / 1) | Yes |
+| `src/agents/research_agent/` | ≥ 70% | 82.4% (17 / 3) | Yes |
+| `src/agents/planner_agent/` | ≥ 70% | 87.0% (23 / 3) | Yes |
+| `src/agents/validator_agent/` | ≥ 70% | 91.4% (35 / 3) | Yes |
+| `src/agents/base.py` | — | 92.3% (13 / 1) | — |
+| `src/shared/` | ≥ 80% | 99.4% (165 / 1) | Yes |
+| `src/api/` (added in Phase D) | — | 90.5% (95 / 9) | — |
+| **Overall** | **≥ 70%** | **95.0% (417 / 21)** | **Yes** |
+
+The first measured run (before `tests/test_llm_provider.py` was added) was 90%
+overall, with `src/shared/llm_provider.py` at 48% as the weakest module; the
+targeted tests raised it to 98%. Most remaining misses are defensive
+provider-error branches inside the agents and the background-task crash
+handler in `src/api/routes.py`.
 
 ---
 
@@ -179,4 +218,4 @@ This document defines the test plan, test strategy, and test cases for the Multi
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | [DD/MM/YYYY] | [Student Name 3] | Initial test plan |
-| | | | |
+| 1.1 | 21/10/2026 | Yash Gharat (with Claude Code) | Filled test-case results from CI; added API (§3.7a) and LLM provider (§3.7b) cases; recorded measured coverage (§6) |

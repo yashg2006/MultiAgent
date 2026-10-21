@@ -190,17 +190,17 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | **Postcondition** | System is configured and ready for task execution. |
 | **Alternate Flow** | If `.env` is missing, system uses default values and logs a warning. |
 
-#### UC-03: [Placeholder Use Case]
+#### UC-03: Submit and Poll a Task via the HTTP API
 
 | Field | Description |
 |---|---|
 | **Use Case ID** | UC-03 |
-| **Name** | [Name] |
-| **Actor(s)** | [Actor] |
-| **Precondition** | [Precondition] |
-| **Main Flow** | [Steps] |
-| **Postcondition** | [Postcondition] |
-| **Alternate Flow** | [Alternate flow] |
+| **Name** | Submit and Poll a Task via the HTTP API |
+| **Actor(s)** | Developer / Researcher (HTTP client) |
+| **Precondition** | The FastAPI app (`src/api/main.py`) is running; the SQLite database has been initialised. |
+| **Main Flow** | 1. Client sends `POST /tasks` with `{"task": "..."}`. <br> 2. API creates a `TaskRecord` with `status="pending"`, returns it immediately (HTTP 201), and schedules the Orchestrator pipeline to run in the background. <br> 3. Client polls `GET /tasks/{id}` until `status` is `"success"`, `"partial"`, or `"error"`. <br> 4. Client reads the final `result`/`error` from the response. |
+| **Postcondition** | The task's full outcome (result, error, retries used, step trace) is persisted and retrievable by id. |
+| **Alternate Flow** | **A1:** Empty `task` string → HTTP 422 before any orchestrator run is scheduled. <br> **A2:** Unknown task id → HTTP 404. <br> **A3:** Orchestrator pipeline crashes unexpectedly → task record is marked `status="error"` rather than left stuck at `"pending"`. |
 
 ---
 
