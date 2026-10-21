@@ -8,9 +8,10 @@ fastapi>=0.111.0
 uvicorn>=0.30.0
 sqlalchemy>=2.0.0
 
-# Optional AI / LLM Framework dependencies (uncomment as needed)
-# openai>=1.0.0
-# langchain>=0.1.0
+# LLM providers. anthropic is used when LLM_PROVIDER=anthropic; the SDK is
+# imported lazily, so mock-only use works without it.
+anthropic>=1.0.0
+# openai>=1.0.0   # only needed for LLM_PROVIDER=openai
 
 # Testing and Code Quality
 pytest>=7.4.0

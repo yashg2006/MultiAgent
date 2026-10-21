@@ -12,9 +12,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from src.shared.config import settings
-from src.shared.llm_provider import LLMProvider, get_provider
-from src.shared.schemas import AgentRequest, AgentResponse
+from src.shared.llm_provider import (
+    LLMProvider,
+    LLMResult,
+    generate_with_resilience,
+    provider_from_settings,
+)
+from src.shared.schemas import AgentRequest, AgentResponse, LLMUsage
 
 
 class Agent(ABC):
@@ -31,8 +35,15 @@ class Agent(ABC):
                 standalone in tests and demos with no API key required.
             config: optional agent-specific configuration.
         """
-        self.provider = provider or get_provider(settings.llm_provider, settings.openai_api_key)
+        self.provider = provider or provider_from_settings()
         self.config = config or {}
+
+    def call_llm(
+        self, prompt: str, *, system: str | None = None, kind: str = "text"
+    ) -> tuple[LLMResult, LLMUsage]:
+        """The one way agents call a model: retries, circuit breaker, and usage
+        accounting included. Thread-safe; agents keep no per-call state."""
+        return generate_with_resilience(self.provider, prompt, system=system, kind=kind)
 
     @abstractmethod
     def execute(self, request: AgentRequest) -> AgentResponse:

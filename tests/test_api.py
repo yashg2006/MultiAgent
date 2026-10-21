@@ -106,3 +106,12 @@ def test_list_tasks_returns_created_tasks_most_recent_first(client):
     assert list_response.status_code == 200
     ids_in_order = [t["id"] for t in list_response.json()]
     assert ids_in_order.index(second["id"]) < ids_in_order.index(first["id"])
+
+
+def test_completed_task_reports_usage_totals(client):
+    task_id = client.post("/tasks", json={"task": "Summarize EDF"}).json()["id"]
+    body = client.get(f"/tasks/{task_id}").json()
+    # Mock provider: one call each for planner, 3 research sub-tasks, validator.
+    assert body["usage"]["calls"] == 5
+    assert body["usage"]["cost_usd"] == 0
+    assert all("usage" in step for step in body["steps"])

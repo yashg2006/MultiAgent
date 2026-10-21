@@ -54,9 +54,11 @@ CI (`.github/workflows/tests.yml`) runs all of the above on every PR to
 annotations. If a sandbox can't install dependencies, open the PR and use
 CI as the verification step rather than reporting unrun checks as passing.
 
-LLM provider is selected via `LLM_PROVIDER` env var (`mock` by default — no
-API key required; set to `openai` and supply `OPENAI_API_KEY` in `.env` to
-use a real provider). Tests and CI always run against the Mock provider.
+LLM provider is selected via `LLM_PROVIDER` (`mock` by default — no API key,
+no cost; `anthropic` with `ANTHROPIC_API_KEY` for Claude; `openai` also
+supported). Agents must call models only through `Agent.call_llm()`, which
+adds retries, the circuit breaker, and usage/cost accounting. Tests and CI
+never call a real model: use `tests/fakes.py::ScriptedProvider` or the Mock.
 
 ## Conventions
 

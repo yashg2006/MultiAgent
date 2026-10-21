@@ -1,4 +1,5 @@
 import type { Task } from "./types";
+import { describeUsage } from "./usage";
 
 /** Render a finished run as a Markdown document for download. */
 export function taskToMarkdown(task: Task): string {
@@ -10,6 +11,8 @@ export function taskToMarkdown(task: Task): string {
     `- Started: ${task.created_at}`,
     `- Validation retries: ${task.retries_used ?? 0}`,
   ];
+  const usage = describeUsage(task.usage);
+  if (usage.length > 0) lines.push(`- Model usage: ${usage.join(", ")}`);
 
   if (task.error) {
     lines.push("", "## Problem", "", task.error);
@@ -22,6 +25,9 @@ export function taskToMarkdown(task: Task): string {
       lines.push("", `### ${subTaskId}`, "");
       if (sub.query) lines.push(`Question: ${sub.query}`, "");
       lines.push(sub.error ? `Failed: ${sub.error}` : (sub.findings ?? "No findings returned."));
+      for (const source of sub.sources ?? []) {
+        lines.push("", `Source: [${source.title}](${source.url})`);
+      }
     }
   }
 

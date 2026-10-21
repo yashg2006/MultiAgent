@@ -100,17 +100,19 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 |--------|-------------|----------|
 | FR-O-01 | The orchestrator shall accept a task string as input from the user. | High |
 | FR-O-02 | The orchestrator shall parse the input task and determine which agents to invoke. | High |
-| FR-O-03 | The orchestrator shall dispatch sub-tasks to agents sequentially or in parallel (configurable). | High |
+| FR-O-03 | The orchestrator shall order sub-tasks by their declared dependencies and research independent sub-tasks in parallel (up to `MAX_PARALLEL_RESEARCH`, default 4), passing each sub-task the findings of the sub-tasks it depends on. | High |
 | FR-O-04 | The orchestrator shall aggregate agent responses into a unified output. | High |
-| FR-O-05 | The orchestrator shall handle agent failures gracefully with retry logic. | Medium |
+| FR-O-05 | The orchestrator shall handle agent failures gracefully: a failing or crashing agent is recorded as an error step, and a rejected result is re-researched (with the validator's feedback) up to `MAX_RETRIES` times. | Medium |
 | FR-O-06 | The orchestrator shall log execution state transitions for debugging. | Medium |
+| FR-O-07 | The orchestrator shall report each step to an optional observer as soon as it finishes, and stop between stages when cancellation is requested, returning status `cancelled` with any partial results. | Medium |
+| FR-O-08 | The orchestrator shall total LLM usage (calls, retries, input/output tokens, estimated cost in USD) per step and per run. | Medium |
 
 #### 3.1.2 Research Agent
 
 | Req ID | Requirement | Priority |
 |--------|-------------|----------|
 | FR-R-01 | The Research Agent shall accept a query string and return structured research results. | High |
-| FR-R-02 | The Research Agent shall interface with the configured LLM provider (`src/shared/llm_provider.py`) for information synthesis; a dedicated external search/retrieval API is future scope (see §9.2 of the project report). | High |
+| FR-R-02 | The Research Agent shall answer via the configured LLM provider, optionally grounded in results from a pluggable search tool (`SEARCH_TOOL`: `none` or `wikipedia`, free and keyless), and shall return the sources it was given. A search failure shall not fail the research step. | High |
 | FR-R-03 | The Research Agent shall return results conforming to the `AgentResponse` schema. | High |
 | FR-R-04 | The Research Agent shall return `status="error"` with a populated `error` field — never raise an exception — if the query is empty or the LLM provider call fails. | High |
 
@@ -119,7 +121,7 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | Req ID | Requirement | Priority |
 |--------|-------------|----------|
 | FR-P-01 | The Planner Agent shall accept a high-level objective and return an ordered list of sub-tasks. | High |
-| FR-P-02 | Each sub-task in the plan shall include a unique `id` and a `description` (see `SubTask` schema). | Medium |
+| FR-P-02 | Each sub-task shall include a unique `id`, a `description`, and `depends_on` (ids it needs first). The Planner shall reject plans with unknown or self dependencies, cycles, or more than `MAX_SUB_TASKS` sub-tasks, asking the model once to correct the plan before failing. | Medium |
 | FR-P-03 | The Planner Agent shall return results conforming to the `AgentResponse` schema. | High |
 | FR-P-04 | The Planner Agent shall return `status="error"` with a populated `error` field if the objective is empty or the LLM provider call fails, rather than returning an empty or malformed plan. | High |
 
@@ -130,7 +132,7 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | FR-V-01 | The Validator Agent shall accept a result dictionary and return a `ValidationResult` with a pass/fail status. | High |
 | FR-V-02 | The Validator Agent shall reject (fail) a result set if any sub-task entry is empty or carries an upstream `error` key — this is a deterministic rule check, independent of LLM availability. | High |
 | FR-V-03 | The Validator Agent shall provide a list of reason strings when validation fails. | Medium |
-| FR-V-04 | The Validator Agent shall additionally request a qualitative score from the configured LLM provider (LLM-judge pass); a provider failure during this pass shall not change the rule-check pass/fail verdict. | Medium |
+| FR-V-04 | If rule checks pass, the Validator Agent shall obtain a 0–1 quality score from the configured LLM (relevance, completeness, consistency, specificity) and pass the result only if the score is at least `JUDGE_THRESHOLD` (default 0.6). If the judge is unavailable or returns no usable score, the rule-check verdict shall stand and the reason shall say so. | Medium |
 
 #### 3.1.5 Shared Module
 
@@ -146,9 +148,9 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 |--------|----------|-------------|
 | NFR-01 | **Performance** | With the Mock LLM provider (no network I/O), individual agent execution shall complete in well under 1 second. With a real LLM provider, per-agent latency is bounded by that provider's own response time plus the orchestrator's retry policy (`max_retries`, default 3, exponential backoff from `retry_base_delay_seconds`, default 0.5s — see `src/shared/config.py`), not by this system's own processing. Actual measured values are recorded in `docs/project_report.md §7.2` once benchmarking is run. |
 | NFR-02 | **Scalability** | The architecture shall support addition of new agent types without modifying the orchestrator core logic. |
-| NFR-03 | **Reliability** | The system shall implement retry logic (max 3 attempts) with exponential backoff for transient API failures. |
+| NFR-03 | **Reliability** | Every LLM call shall be retried on transient errors only (connection/timeout, HTTP 429, HTTP 5xx) up to `LLM_MAX_ATTEMPTS` (default 3) with exponential backoff and jitter, and shall pass through a circuit breaker that fails fast for `CIRCUIT_RESET_SECONDS` (default 30) after `CIRCUIT_FAILURE_THRESHOLD` (default 5) consecutive failures. Each call has a timeout (`LLM_TIMEOUT_SECONDS`, default 60). |
 | NFR-04 | **Maintainability** | All source code shall follow PEP 8 standards and include module-level and function-level docstrings. |
-| NFR-05 | **Security** | API keys, tokens, and secrets shall be stored exclusively in `.env` files excluded via `.gitignore`. |
+| NFR-05 | **Security** | API keys, tokens, and secrets shall be supplied only through environment variables (`.env`, excluded via `.gitignore`, or CI secrets) and never committed or logged. |
 | NFR-06 | **Usability** | The system shall provide clear error messages and execution logs. |
 | NFR-07 | **Portability** | The system shall run on Windows, macOS, and Linux without platform-specific modifications. |
 | NFR-08 | **Testability** | All modules shall be testable in isolation using mock objects for external dependencies. |

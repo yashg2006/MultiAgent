@@ -17,14 +17,26 @@ from sqlalchemy.orm import Session
 from src.api.schemas import TaskCreateRequest, TaskOut
 from src.orchestrator.main import Orchestrator
 from src.shared.db import TaskRecord, get_session, serialize_steps
+from src.shared.schemas import LLMUsage
 from src.shared.utils import setup_logger
 
 logger = setup_logger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
+def _usage_from_steps(steps: list[dict] | None) -> dict | None:
+    if not steps:
+        return None
+    total = LLMUsage()
+    for step in steps:
+        if isinstance(step.get("usage"), dict):
+            total = total + LLMUsage.model_validate(step["usage"])
+    return total.model_dump()
+
+
 def _to_task_out(record: TaskRecord) -> TaskOut:
     return TaskOut(
+        usage=_usage_from_steps(record.steps_json),
         id=record.id,
         input_task=record.input_task,
         status=record.status,
@@ -48,7 +60,7 @@ def _run_task_in_background(task_id: str, input_task: str) -> None:
     session: Session = get_session()
     try:
         orchestrator = Orchestrator()
-        result = orchestrator.run(input_task)
+        result = orchestrator.run(input_task, task_id=task_id)
 
         record = session.get(TaskRecord, task_id)
         if record is None:

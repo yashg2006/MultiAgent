@@ -6,6 +6,7 @@ import { useTask } from "../hooks/useTasks";
 import { taskToMarkdown } from "../markdown";
 import { formatApiTime } from "../time";
 import type { Task } from "../types";
+import { describeUsage } from "../usage";
 
 function downloadMarkdown(task: Task) {
   const blob = new Blob([taskToMarkdown(task)], { type: "text/markdown" });
@@ -20,6 +21,7 @@ function downloadMarkdown(task: Task) {
 const PROBLEM_HEADING: Record<string, string> = {
   partial: "Validation didn't pass",
   error: "The run failed",
+  cancelled: "Run cancelled",
 };
 
 export function TaskPage() {
@@ -47,6 +49,11 @@ export function TaskPage() {
           <span className="text-xs text-steel">
             Run <span className="font-mono">{task.id.slice(0, 8)}</span>
           </span>
+          {describeUsage(task.usage).map((part) => (
+            <span key={part} className="text-xs text-steel">
+              {part}
+            </span>
+          ))}
         </div>
         <h2 className="max-w-[60ch] text-2xl font-semibold leading-snug text-ink">
           {task.input_task}
@@ -90,10 +97,26 @@ export function TaskPage() {
               <li key={subTaskId} className="py-4">
                 <p className="text-sm font-medium text-ink">{sub.query ?? subTaskId}</p>
                 <p
-                  className={`mt-1 max-w-[72ch] text-sm leading-relaxed ${sub.error ? "text-fail" : "text-steel"}`}
+                  className={`mt-1 max-w-[72ch] whitespace-pre-line text-sm leading-relaxed ${sub.error ? "text-fail" : "text-steel"}`}
                 >
                   {sub.error ? `Failed: ${sub.error}` : sub.findings}
                 </p>
+                {sub.sources && sub.sources.length > 0 && (
+                  <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-steel">
+                    <span>Sources:</span>
+                    {sub.sources.map((source) => (
+                      <a
+                        key={source.url}
+                        href={source.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-action underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-action"
+                      >
+                        {source.title}
+                      </a>
+                    ))}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

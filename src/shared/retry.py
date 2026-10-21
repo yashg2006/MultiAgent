@@ -37,6 +37,7 @@ def call_with_retry(
     retry_on: tuple[type[Exception], ...] = (Exception,),
     sleep_fn: Callable[[float], None] = time.sleep,
     rand_fn: Callable[[], float] = random.random,
+    on_retry: Callable[[int, Exception], None] | None = None,
 ) -> T:
     """
     Call `func` and retry on failure with exponential backoff + jitter.
@@ -49,6 +50,8 @@ def call_with_retry(
         retry_on: exception types that should trigger a retry; anything else
             propagates immediately.
         sleep_fn / rand_fn: injectable for deterministic unit testing.
+        on_retry: called with (attempt_number, error) before each retry, e.g.
+            to count retries for metrics.
 
     Returns:
         The return value of `func` on success.
@@ -76,6 +79,8 @@ def call_with_retry(
                 exc,
                 jittered_delay,
             )
+            if on_retry is not None:
+                on_retry(attempt, exc)
             sleep_fn(jittered_delay)
 
     assert last_error is not None  # noqa: S101 - unreachable otherwise, guards type-checkers
