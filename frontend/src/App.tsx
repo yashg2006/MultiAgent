@@ -4,6 +4,7 @@ import { TaskComposer } from "./components/TaskComposer";
 import { TaskHistory } from "./components/TaskHistory";
 import { useMe, useSignOut } from "./hooks/useAuth";
 import { AuthPage } from "./pages/AuthPage";
+import { MetricsPage } from "./pages/MetricsPage";
 import { StartPage } from "./pages/StartPage";
 import { TaskPage } from "./pages/TaskPage";
 
@@ -40,7 +41,15 @@ function Shell() {
           </h1>
           <TaskComposer />
           <section>
-            <h2 className="mb-2 text-sm font-medium text-steel">Past runs</h2>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-steel">Past runs</h2>
+              <Link
+                to="/stats"
+                className="text-xs font-medium text-action underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-action"
+              >
+                Stats
+              </Link>
+            </div>
             <TaskHistory />
           </section>
           <div className="flex items-center justify-between gap-3 border-t border-rule pt-4 text-xs text-steel">
@@ -73,6 +82,7 @@ export function App() {
         {/* Run pages live under /runs, not /tasks: /tasks/* is the API, and sharing
             one path made reloads and shared links return JSON. */}
         <Route path="runs/:id" element={<TaskPage />} />
+        <Route path="stats" element={<MetricsPage />} />
       </Route>
     </Routes>
   );

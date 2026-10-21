@@ -66,3 +66,11 @@ export interface User {
   email: string;
   created_at: string;
 }
+
+/** Mirrors the `/tasks/stats/summary` response in src/api/routes.py. */
+export interface Stats {
+  total_runs: number;
+  by_status: Record<string, number>;
+  success_rate: number | null;
+  usage: Usage;
+}
