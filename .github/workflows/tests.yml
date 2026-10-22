@@ -235,14 +235,14 @@ jobs:
 
     - name: Scan the backend image (Trivy)
       if: always()
-      uses: aquasecurity/trivy-action@0.28.0
-      with:
-        image-ref: multiagent-api:latest
-        format: table
-        severity: HIGH,CRITICAL
-        ignore-unfixed: true
-        exit-code: "0"
       continue-on-error: true
+      run: |
+        # Install the Trivy CLI (avoids pinning a marketplace-action tag).
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+          | sh -s -- -b /usr/local/bin
+        trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+          --exit-code 0 --no-progress multiagent-api:latest | tee trivy.txt
+        echo "::notice title=Trivy::$(grep -cE 'CVE-' trivy.txt || echo 0) HIGH/CRITICAL fixable finding line(s) in the backend image"
 
     - name: Stop the stack
       if: always()
