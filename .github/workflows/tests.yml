@@ -239,6 +239,25 @@ jobs:
           exit 1
         fi
 
+    - name: Capture UI screenshots
+      if: always()
+      working-directory: frontend
+      env:
+        BASE_URL: http://localhost:8080
+      run: |
+        mkdir -p ../docs/assets/screenshots
+        npx playwright test --config=playwright.screenshots.config.ts || \
+          echo "::warning title=Screenshots::capture step did not complete"
+        ls -la ../docs/assets/screenshots || true
+
+    - name: Upload UI screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-screenshots
+        path: docs/assets/screenshots
+        if-no-files-found: ignore
+
     - name: Upload Playwright report
       if: always()
       uses: actions/upload-artifact@v4
