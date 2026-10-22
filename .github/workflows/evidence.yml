@@ -88,6 +88,58 @@ jobs:
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
 
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build and start the stack
+        run: |
+          cp .env.docker.example .env
+          docker compose up -d --build
+
+      - name: Wait for the API to be ready
+        run: |
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ready || true)
+            if [ "$code" = "200" ]; then echo "ready after ${i} tries"; exit 0; fi
+            sleep 2
+          done
+          echo "::error::API never became ready"; docker compose ps; docker compose logs --tail=80
+          exit 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Capture UI screenshots
+        working-directory: frontend
+        env:
+          BASE_URL: http://localhost:8080
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          mkdir -p ../docs/assets/screenshots
+          npx playwright test --config=playwright.screenshots.config.ts
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+      - name: Commit screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/screenshots/ || true
+          if git diff --cached --quiet; then
+            echo "No screenshot changes to commit."
+          else
+            git commit -m "docs: capture UI screenshots [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
   loadtest:
     runs-on: ubuntu-latest
     steps:
