@@ -1,0 +1,47 @@
+name: Mutation Testing
+
+# Runs mutmut against small, pure, well-tested modules (retry + resilience) to
+# measure how many injected faults the test suite catches. Non-blocking; results
+# are posted to the run summary and uploaded as an artifact.
+
+on:
+  pull_request:
+    branches: ["develop", "main"]
+  workflow_dispatch:
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mutmut
+
+      - name: Run mutation tests
+        run: |
+          mutmut run || true
+          echo '## Mutation testing (mutmut)' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Modules: src/shared/retry.py, src/shared/resilience.py' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          mutmut results 2>&1 | tee mutmut-results.txt >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload mutation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-results
+          path: mutmut-results.txt
+          if-no-files-found: ignore
