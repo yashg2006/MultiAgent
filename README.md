@@ -11,8 +11,18 @@ coordinates three agents to work on a goal:
    retries the research→validate cycle (up to 3 times by default) and otherwise
    returns a partial result with the reasons.
 
-It ships with a FastAPI backend, a SQLite run history, and a React web UI that
-shows each run's step trace, including validator retries.
+Independent sub-tasks run in parallel (by dependency level), model calls go
+through one resilient provider layer (retries, circuit breaker, usage/cost
+accounting), and the Validator combines rule checks with an LLM-judge score.
+
+It ships as a production-grade stack: a FastAPI backend with JWT auth and
+per-user isolation, a Redis-backed work queue with separate arq workers,
+Postgres storage with Alembic migrations, a React + TypeScript web UI with a
+live (SSE) step trace and cancellation, Prometheus/Grafana observability, and a
+Docker Compose deployment. SQLite + an inline queue keep local dev and tests
+zero-setup.
+
+![Architecture diagram](docs/assets/diagrams/architecture.png)
 
 ## Team
 
@@ -130,16 +140,41 @@ The schema is managed by Alembic (`migrations/`); `alembic upgrade head`
 applies it, and the API does so on startup unless `AUTO_MIGRATE=false`.
 Measured results are recorded in [`docs/test_plan.md`](docs/test_plan.md).
 
+## Screenshots
+
+Captured from the running app by the `screenshots` job of the Evidence workflow
+(`.github/workflows/evidence.yml`), which drives the real UI with Playwright —
+nothing is mocked. Run that workflow to populate `docs/assets/screenshots/`.
+
+| | |
+|---|---|
+| ![Task composer](docs/assets/screenshots/02-composer.png) | ![Live run trace](docs/assets/screenshots/03-live-trace.png) |
+| ![Completed run](docs/assets/screenshots/04-result.png) | ![Usage and metrics](docs/assets/screenshots/05-metrics.png) |
+
+## Benchmark: does the multi-agent pipeline earn its cost?
+
+`scripts/benchmark.py` runs a fixed task set two ways — a single-agent baseline
+and the full pipeline — judged by the same Validator, recording time, pass rate,
+quality score, calls, tokens, and cost. The `Evidence` workflow runs it (Mock by
+default, Claude when `ANTHROPIC_API_KEY` is set) and commits raw results to
+[`docs/results/`](docs/results/); `scripts/report_benchmark.py` renders the
+comparison table and chart. See [`docs/project_report.md`](docs/project_report.md) §7.
+
 ## Repository layout
 
 ```
-src/orchestrator/   pipeline coordination, retries, aggregation
+src/orchestrator/   pipeline coordination, parallel levels, retries, aggregation
 src/agents/         Planner, Research, Validator (shared Agent base class)
-src/shared/         schemas, config, LLM provider, retry helper, database
-src/api/            FastAPI app
-frontend/           React UI
+src/shared/         schemas, config, LLM provider, resilience, search, database
+src/api/            FastAPI app (auth, SSE, cancel, stats, metrics)
+src/worker/         arq worker + execute_task pipeline
+migrations/         Alembic schema history
+frontend/           React + TypeScript UI (Vite, Tailwind)
+scripts/            benchmark, report generator, Locust load test
+diagrams/           Mermaid sources (rendered to docs/assets/diagrams/)
+infra/              Prometheus + Grafana provisioning
 tests/              pytest suite
-docs/               SRS, architecture, test plan, sprint logs, reports
+docs/               SRS, architecture, test plan, sprint logs, reports, results
 ```
 
 Contribution workflow: see [CONTRIBUTING.md](CONTRIBUTING.md).

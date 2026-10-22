@@ -8,27 +8,47 @@
 
 | Field | Details |
 |---|---|
-| **Project Title** | Multi-Agent AI System for [Problem Domain] |
-| **Course Code** | [CSE XXXX] — Software Engineering |
-| **Semester** | [Semester, Academic Year e.g. Fall 2026] |
+| **Project Title** | Multi-Agent AI System for Reliable Multi-Step Knowledge Tasks |
+| **Course Code** | _(course code — fill before submission)_ — Software Engineering |
+| **Semester** | _(semester / academic year — fill before submission)_ |
 | **Team Members** | |
-| | [Student Name 1] — [Registration Number 1] |
-| | [Student Name 2] — [Registration Number 2] |
-| | [Student Name 3] — [Registration Number 3] |
-| **Faculty Guide** | Prof. [Faculty Name], Department of [CSE/IT], [University Name] |
-| **Submission Date** | [DD/MM/YYYY] |
+| | Dhanika Bhat — 24BRS1356 |
+| | Ayushi Singh — 24BRS1369 |
+| | Yash Gharat — 24BRS1357 |
+| **Faculty Guide** | Prof. _(faculty name — fill before submission)_, School of Computer Science and Engineering (SCOPE), Vellore Institute of Technology, Chennai |
+| **Submission Date** | _(submission date — fill before submission)_ |
 
 ---
 
 ## Abstract
 
-> *(150–250 words)*
->
-> This project presents the design, development, and evaluation of a Multi-Agent AI System that addresses [problem domain]. The system employs an orchestrator-agent architecture in which a central orchestrator coordinates the execution of specialised autonomous agents — a Research Agent for information gathering, a Planner Agent for task decomposition, and a Validator Agent for output verification and quality assurance.
->
-> The project follows the [Agile / Waterfall] software development lifecycle methodology over a 15-week semester. The system is implemented in Python and leverages [LLM APIs / relevant technologies]. Testing encompasses unit, integration, and system-level strategies using the pytest framework, with automated CI/CD via GitHub Actions.
->
-> Key outcomes include [placeholder for outcomes — e.g., successful multi-step task orchestration, X% accuracy on benchmark tasks, demonstrated inter-agent communication reliability]. The report documents the complete lifecycle from requirements elicitation through design, implementation, testing, and deployment.
+This project presents the design, development, and evaluation of a Multi-Agent
+AI System that turns a single natural-language task into a verified result by
+coordinating several specialised agents rather than relying on one model call.
+The system employs an orchestrator-agent architecture in which a central
+Orchestrator coordinates specialised autonomous agents — a Planner Agent that
+decomposes the task into dependency-ordered sub-tasks, a Research Agent that
+gathers grounded information for each sub-task (running independent sub-tasks in
+parallel), and a Validator Agent that combines deterministic rule checks with an
+LLM-judge score and drives bounded retries when a result falls short.
+
+The project follows an Agile software development lifecycle over a multi-sprint
+semester. The backend is implemented in Python (FastAPI, SQLAlchemy, Alembic,
+an arq/Redis work queue) and the frontend in React with TypeScript; models are
+reached through a single resilient provider layer (circuit breaker, retries with
+backoff, usage/cost accounting) that supports Anthropic Claude, OpenAI, and a
+free offline Mock used for tests and CI. Testing spans unit, integration, and
+end-to-end strategies (pytest and Playwright) with automated CI/CD via GitHub
+Actions, including Postgres/Redis integration tests, a container image scan, and
+dependency audits.
+
+To evaluate whether the multi-agent approach earns its additional cost, a
+benchmark harness runs a fixed task set two ways — a single-agent baseline and
+the full pipeline — judged by the same Validator, recording time, pass rate,
+quality score, API calls, tokens, and estimated cost; raw results are committed
+under `docs/results/`. The report documents the complete lifecycle from
+requirements elicitation through design, implementation, testing, and
+containerised deployment.
 
 ---
 
@@ -52,11 +72,30 @@
 
 ### 1.1 Problem Statement
 
-[Describe the real-world problem that the multi-agent AI system addresses. What gap or inefficiency exists that motivates this project?]
+Large language models answer a prompt in a single pass. For tasks that need
+several steps — break the question down, gather information for each part, then
+check the combined answer — a single call offers no separation between planning,
+retrieval, and verification, no place to ground claims in evidence, and no
+mechanism to detect a weak answer and try again. The output is produced and
+returned with no internal quality gate, so errors surface only when a human
+reads the result. This project addresses the problem of executing multi-step
+knowledge tasks reliably: decomposing a task, researching its parts, and
+validating the result before returning it, while remaining observable and
+extensible enough to run as a real service.
 
 ### 1.2 Motivation
 
-[Why is this problem worth solving? What is the academic and practical relevance? Why a multi-agent approach rather than a monolithic solution?]
+Separating concerns is a core software-engineering principle, and it applies to
+AI workflows as much as to conventional systems. A monolithic prompt couples
+planning, retrieval, and checking into one opaque step that is hard to test,
+extend, or reason about. A multi-agent decomposition makes each concern an
+independently testable unit with a typed contract, lets independent sub-tasks
+run in parallel, and introduces an explicit validation-and-retry loop that a
+single call cannot provide. This has academic relevance (it demonstrates
+orchestration, dependency scheduling, and self-correction) and practical
+relevance (the same structure underlies real research-assistant and
+agentic-workflow products). Whether the extra agents justify their added latency
+and cost is itself an empirical question, which §7 examines with the benchmark.
 
 ### 1.3 Objectives
 
@@ -64,7 +103,7 @@
 - **O2:** Develop specialised agents (Research, Planner, Validator) that perform autonomous sub-tasks.
 - **O3:** Establish inter-agent communication protocols and shared data schemas.
 - **O4:** Validate system correctness through comprehensive unit, integration, and system testing.
-- **O5:** [Additional objective placeholder]
+- **O5:** Deliver the system as a production-grade, observable service — containerised deployment, queue-based execution, authentication with per-user isolation, structured logging, and Prometheus/Grafana metrics — and empirically evaluate the multi-agent pipeline against a single-agent baseline.
 
 ### 1.4 Scope
 
@@ -94,22 +133,34 @@ is actually implemented.
 
 ### 2.1 Existing Systems and Approaches
 
-| S.No. | System / Paper | Approach | Strengths | Limitations |
-|-------|----------------|----------|-----------|-------------|
-| 1 | [System/Paper Name] | [Brief approach] | [Key strengths] | [Key limitations] |
-| 2 | [System/Paper Name] | [Brief approach] | [Key strengths] | [Key limitations] |
-| 3 | [System/Paper Name] | [Brief approach] | [Key strengths] | [Key limitations] |
-| 4 | [System/Paper Name] | [Brief approach] | [Key strengths] | [Key limitations] |
+| S.No. | System / Framework | Approach | Strengths | Limitations |
+|-------|--------------------|----------|-----------|-------------|
+| 1 | Auto-GPT (Significant Gravitas) | A single LLM loop that recursively sets its own goals, picks tools, and stores state in memory to pursue an objective autonomously. | Popularised autonomous task loops; large tool ecosystem; fully hands-off operation. | One undifferentiated loop with no separation of planning/validation; prone to looping and drift; little built-in output verification; cost/latency hard to bound. |
+| 2 | Microsoft AutoGen | A framework of conversable agents that solve tasks by exchanging messages (e.g. an assistant and a user-proxy/executor). | Flexible multi-agent conversations; code-execution agents; strong research backing. | Conversation-centric rather than a fixed, testable pipeline; emergent control flow is harder to unit-test and reason about; orchestration left largely to the developer. |
+| 3 | CrewAI | Role-based agents ("crew") with assigned roles, goals, and sequential or hierarchical task processes. | Clear role abstractions; quick to assemble; readable task definitions. | Heavier framework dependency; validation/self-correction is not a first-class stage; parallelism and retry semantics are limited or implicit. |
+| 4 | LangGraph (LangChain) | Agent workflows modelled explicitly as a stateful directed graph of nodes and edges. | General graph model; good for branching/looping flows; built-in state management. | Significant dependency and a second state model; more machinery than a fixed plan→research→validate→retry pipeline needs; a learning curve for a small, well-defined flow. |
 
 ### 2.2 Gaps Identified
 
-- [Gap 1: e.g., existing systems lack modular agent decomposition]
-- [Gap 2: e.g., limited validation/self-correction mechanisms]
-- [Gap 3: e.g., lack of shared schema standardisation across agents]
+- **Weak separation of concerns.** Several systems fold planning, retrieval, and checking into one loop or conversation, which is hard to test in isolation and reason about.
+- **Limited validation / self-correction.** Output verification is rarely a first-class, configurable stage with an explicit retry policy; most systems return whatever the loop produces.
+- **No standard inter-agent contract.** Agents often exchange free-form text or framework-specific objects rather than a single typed schema enforced at every boundary.
+- **Cost/latency opacity.** The additional expense of a multi-agent approach is seldom measured against a single-call baseline.
 
 ### 2.3 How This Project Addresses the Gaps
 
-[Explain how the proposed multi-agent architecture addresses each identified gap, referencing specific design choices.]
+Each agent is a separate, independently tested unit behind the abstract `Agent`
+contract, so planning, research, and validation are cleanly separated (addresses
+gap 1). Validation is a first-class stage: the Validator combines deterministic
+rule checks with an LLM-judge score against a configurable threshold, and the
+Orchestrator retries up to a bounded number of times before returning a partial
+result (gap 2). Every boundary crosses as the typed `AgentRequest`/
+`AgentResponse` schemas — never raw dicts — giving one enforced contract (gap 3).
+Rather than adopt a general graph engine, the project implements the fixed
+plan → research (parallel by dependency level) → validate → retry pipeline in
+~200 lines of plain, exhaustively tested Python, and ships a benchmark that
+measures the pipeline against a single-agent baseline so the cost/benefit
+trade-off is explicit (gap 4).
 
 ---
 
@@ -140,9 +191,10 @@ is actually implemented.
 
 ### 3.3 Use Case Diagrams
 
-> *[Insert Use Case Diagram here — source file at `diagrams/src_diagrams/use_case.puml` or `.drawio`]*
+![Use-case diagram](assets/diagrams/use_case.png)
+
+*Source: [`diagrams/use_case.mmd`](../diagrams/use_case.mmd)*
 >
-> *![Use Case Diagram](../diagrams/exports/use_case_diagram.png)*
 
 ### 3.4 Use Case Descriptions
 
@@ -194,9 +246,10 @@ is actually implemented.
 
 ### 4.1 Architecture Diagram
 
-> *[Insert high-level architecture diagram showing Orchestrator, Agents, Shared module, and external APIs]*
+![Architecture diagram](assets/diagrams/architecture.png)
+
+*Source: [`diagrams/architecture.mmd`](../diagrams/architecture.mmd)*
 >
-> *![Architecture Diagram](../diagrams/exports/architecture_diagram.png)*
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -227,9 +280,10 @@ is actually implemented.
 
 ### 4.2 Sequence Diagrams
 
-> *[Insert sequence diagram showing the interaction flow for a typical task execution]*
+![Sequence diagram](assets/diagrams/sequence.png)
+
+*Source: [`diagrams/sequence.mmd`](../diagrams/sequence.mmd)*
 >
-> *![Sequence Diagram](../diagrams/exports/sequence_diagram.png)*
 
 **Example Mermaid Source (for reference):**
 
@@ -255,29 +309,33 @@ sequenceDiagram
 
 ### 4.3 Activity Diagram
 
-> *[Insert activity diagram depicting the workflow from task submission to result delivery]*
+![Activity diagram](assets/diagrams/activity.png)
+
+*Source: [`diagrams/activity.mmd`](../diagrams/activity.mmd)*
 >
-> *![Activity Diagram](../diagrams/exports/activity_diagram.png)*
 
 ### 4.4 Data Flow Diagrams
 
 #### DFD Level 0 (Context Diagram)
 
-> *[Insert context-level DFD showing external entities and data flows into/out of the system]*
+![DFD level 0](assets/diagrams/dfd_level0.png)
+
+*Source: [`diagrams/dfd_level0.mmd`](../diagrams/dfd_level0.mmd)*
 >
-> *![DFD Level 0](../diagrams/exports/dfd_level0.png)*
 
 #### DFD Level 1
 
-> *[Insert Level 1 DFD showing decomposed processes — Orchestrator, Research, Planner, Validator — and data stores]*
+![DFD level 1](assets/diagrams/dfd_level1.png)
+
+*Source: [`diagrams/dfd_level1.mmd`](../diagrams/dfd_level1.mmd)*
 >
-> *![DFD Level 1](../diagrams/exports/dfd_level1.png)*
 
 ### 4.5 Class Diagram
 
-> *[Insert class diagram showing key classes: Orchestrator, ResearchAgent, PlannerAgent, ValidatorAgent, AgentRequest, AgentResponse, Settings]*
+![Class diagram](assets/diagrams/class.png)
+
+*Source: [`diagrams/class.mmd`](../diagrams/class.mmd)*
 >
-> *![Class Diagram](../diagrams/exports/class_diagram.png)*
 
 ```mermaid
 classDiagram
@@ -396,15 +454,31 @@ The Orchestrator module is the system's entry point. It receives a user task, co
 
 #### 5.2.2 Research Agent (`src/agents/research_agent/`)
 
-[Describe the Research Agent's purpose, input/output contract, and key algorithms or API integrations it uses.]
+Gathers grounded information for one sub-task. It takes an `AgentRequest` whose
+objective is the sub-task query, optionally retrieves context from a pluggable
+`SearchTool` (the free Wikipedia search by default, or a `NullSearchTool` in
+tests), passes that context to the model through `call_llm()`, and returns an
+`AgentResponse` whose data holds the findings plus token/cost usage. Independent
+sub-tasks are dispatched in parallel by the Orchestrator, so the agent itself
+stays single-purpose and stateless.
 
 #### 5.2.3 Planner Agent (`src/agents/planner_agent/`)
 
-[Describe the Planner Agent's purpose, how it breaks objectives into sub-tasks, and any planning heuristics or LLM prompting strategies used.]
+Decomposes the objective into an ordered list of sub-tasks. It prompts the model
+for a JSON plan in which each sub-task carries an `id` and a `depends_on` list,
+parses the output defensively (`extract_json_object` + `Plan` validation), and
+makes one repair attempt before failing cleanly if the model returns unusable
+JSON. The `depends_on` edges are what let the Orchestrator schedule independent
+sub-tasks concurrently while respecting ordering.
 
 #### 5.2.4 Validator Agent (`src/agents/validator_agent/`)
 
-[Describe the Validator Agent's purpose, what quality checks it performs, and how it reports pass/fail status.]
+Judges the aggregated result. It first applies deterministic rule checks (e.g.
+non-empty findings for every sub-task), then asks the model for a JSON judgement
+`{score 0–1, reasons}` against a short rubric. A result passes only when the
+rules pass **and** the judge score meets the configurable `judge_threshold`.
+The status and score are returned on the `AgentResponse`, and the Orchestrator
+uses them to decide whether to accept the result or retry.
 
 #### 5.2.5 Shared Module (`src/shared/`)
 
@@ -415,7 +489,26 @@ Contains cross-cutting concerns shared by all components:
 
 ### 5.3 Key Algorithms and Logic
 
-[Describe 2–3 core algorithms or design patterns used in the implementation. Examples: orchestrator routing algorithm, agent selection heuristic, prompt chaining strategy, retry with exponential backoff.]
+**Dependency-level scheduling (parallel research).** The Planner's sub-tasks
+form a dependency graph via `depends_on`. `dependency_levels()` groups them into
+levels by a topological pass: level *k* contains every sub-task whose
+dependencies all appear in earlier levels. The Orchestrator executes one level
+at a time, running the independent sub-tasks within a level concurrently through
+a thread pool (bounded by `max_parallel_research`), so independent work overlaps
+while ordering is preserved.
+
+**Validate-and-retry loop.** After research, the Orchestrator aggregates the
+findings and invokes the Validator. If the result fails (rules fail or the judge
+score is below threshold), it retries the research/validate cycle up to
+`max_retries` times; when retries are exhausted it returns the best partial
+result together with the validation errors, never raising to the caller.
+
+**Resilient model calls.** Every agent reaches a model only through
+`Agent.call_llm()`, which delegates to `generate_with_resilience`: a retry with
+exponential backoff for transient errors, a shared circuit breaker that fails
+fast after repeated provider failures, a per-call timeout, and usage/cost
+accounting. This centralises the reliability patterns so no agent can bypass
+them.
 
 ---
 
@@ -429,7 +522,7 @@ Contains cross-cutting concerns shared by all components:
 |-------|-------|------|----------|
 | Unit Testing | Individual agent methods, utility functions, schema validation | pytest | `tests/test_agents.py`, `tests/test_orchestrator.py` |
 | Integration Testing | End-to-end pipeline with mocked LLM responses | pytest | `tests/test_integration.py` |
-| System Testing | Full system execution against live/sandbox APIs | Manual + pytest | [Location] |
+| End-to-End / System Testing | Full stack (UI → API → queue → worker → DB) driven through the browser | Playwright | `frontend/e2e/app.spec.ts` (run by the `e2e` CI job against the Compose stack) |
 
 ### 6.2 Test Cases
 
@@ -446,9 +539,11 @@ Contains cross-cutting concerns shared by all components:
 ### 6.3 Code Coverage
 
 Measured with `pytest --cov=src` in GitHub Actions (run
-[39615268359](https://github.com/yashg2006/MultiAgent/actions/runs/39615268359),
-commit `8dd82b0`): **95.0% line coverage (417 statements, 21 missed)** across
-51 test functions, against a target of ≥ 70%. Every module-level target in
+[39715518771](https://github.com/yashg2006/MultiAgent/actions/runs/39715518771),
+commit `c146082`): **98% line coverage (1440 statements, 33 missed)** across
+165 backend test functions, against the CI gate of ≥ 80%. The same CI run
+executes the full suite a second time against real Postgres and Redis service
+containers (66/66 integration tests passing). Every module-level target in
 `docs/test_plan.md` §6 is met; the full per-module table is there.
 
 CI now publishes the coverage total and per-module breakdown as annotations on
@@ -460,22 +555,68 @@ every pull request, so this number stays visible as the code changes.
 
 ### 7.1 Screenshots / Sample Outputs
 
-> *[Insert screenshots of system execution, terminal output, or UI if applicable]*
->
-> *![Sample Output 1](../diagrams/exports/sample_output_1.png)*
+The screenshots below are captured from the running application by the `screenshots` job of the Evidence workflow (`.github/workflows/evidence.yml`), which drives the real UI with Playwright and commits the images to `docs/assets/screenshots/` — nothing is mocked or staged.
 
-### 7.2 Performance Metrics
+![Sign-in page](assets/screenshots/01-sign-in.png)
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Average task completion time | [X seconds] | [Conditions] |
-| Agent success rate | [X%] | [Over N test runs] |
-| API call efficiency | [X calls per task] | [Average] |
-| Test coverage | 95.0% | `pytest --cov=src`, CI run 39615268359 (see §6.3) |
+![Task composer](assets/screenshots/02-composer.png)
 
-### 7.3 Discussion
+![Live run trace](assets/screenshots/03-live-trace.png)
 
-[Interpret the results. What worked well? What were unexpected challenges? How do the results compare to the objectives stated in Section 1.3?]
+![Completed run with findings](assets/screenshots/04-result.png)
+
+![Usage and metrics](assets/screenshots/05-metrics.png)
+
+### 7.2 Benchmark: single-agent vs. multi-agent
+
+To test whether the multi-agent pipeline earns its extra cost, `scripts/benchmark.py`
+runs a fixed set of 15 varied tasks two ways — a single-agent baseline (one model
+call) and the full pipeline — and judges **both** with the same Validator so the
+quality scores are directly comparable. It records, per task and approach,
+wall-clock time, validator pass rate, judge score, LLM calls, tokens, and
+estimated cost. The run is driven by the `Evidence` workflow
+(`.github/workflows/evidence.yml`): with the `ANTHROPIC_API_KEY` secret set it
+uses Claude (`claude-haiku-5-5`), otherwise it falls back to the free Mock
+provider. Raw results are committed to `docs/results/` and the table/chart below
+are generated from them by `scripts/report_benchmark.py` — no number here is
+hand-entered.
+
+![Benchmark comparison](assets/benchmark-mock.png)
+
+*(The chart shows the latest committed run. With `ANTHROPIC_API_KEY` set, the Evidence workflow instead produces `benchmark-anthropic.png` with real quality and cost figures.)*
+
+*Table: [`docs/results/benchmark-anthropic.md`](results/benchmark-anthropic.md)
+(or `benchmark-mock.md` for the offline run). These files are produced by the
+Evidence workflow; run it once to populate them.*
+
+### 7.3 Performance Characteristics
+
+| Metric | Source |
+|--------|--------|
+| Task completion time, pass rate, judge score, calls, tokens, cost | Benchmark results in `docs/results/` (§7.2) |
+| Throughput / latency under concurrent load | Locust load test, `docs/results/loadtest*` (Evidence workflow) |
+| Test coverage | `pytest --cov=src` in CI; gate ≥ 80% (see §6.3) |
+
+### 7.4 Discussion
+
+The multi-agent pipeline is expected to trade higher latency and cost — it makes
+several model calls per task (plan, one per sub-task, validate, and retries)
+versus one for the baseline — for better-grounded, verified answers and an
+explicit quality gate. The benchmark quantifies exactly this trade-off; the
+numbers live in `docs/results/` so the claim can be checked rather than asserted.
+
+What worked well: the typed `AgentRequest`/`AgentResponse` contract made agents
+independently testable and kept the Orchestrator agnostic to which agents it
+runs (NFR-02); the single resilient call path meant retries, the circuit breaker,
+and cost accounting were implemented once and applied everywhere; and the Mock
+provider made the entire test and CI pipeline free, fast, and deterministic.
+
+Challenges: real-model output is non-deterministic, so the Planner's JSON parsing
+needed a defensive repair step and all tests had to use the Mock or recorded
+fixtures rather than live calls; and streaming live progress (SSE) required
+replacing the buffering middleware with a plain ASGI implementation. Against the
+objectives of §1.3, O1–O4 are met in full and O5 is met through the containerised,
+observable deployment and the benchmark described above.
 
 ---
 
@@ -487,21 +628,21 @@ every pull request, so this number stays visible as the code changes.
 
 | Sprint | Weeks | Planned Tasks | Assigned To | Status |
 |--------|-------|---------------|-------------|--------|
-| Sprint 1 | 1–2 | Project setup, SRS draft, repo scaffolding | All | [Status] |
-| Sprint 2 | 3–4 | Architecture design, agent interface definitions | [Student Name 1], [Student Name 2] | [Status] |
-| Sprint 3 | 5–7 | Core orchestrator + Research Agent implementation | [Student Name 1] | [Status] |
-| Sprint 4 | 8–10 | Planner + Validator Agent implementation | [Student Name 2], [Student Name 3] | [Status] |
-| Sprint 5 | 11–12 | Integration testing, bug fixes | All | [Status] |
-| Sprint 6 | 13–14 | System testing, documentation, report writing | All | [Status] |
-| Sprint 7 | 15 | Final submission, presentation prep | All | [Status] |
+| Sprint 1 | 1–2 | Project setup, SRS draft, repo scaffolding | All | Completed |
+| Sprint 2 | 3–4 | Architecture design, agent interface definitions | Dhanika Bhat, Ayushi Singh | Completed |
+| Sprint 3 | 5–7 | Core orchestrator + Research Agent implementation | Dhanika Bhat | Completed |
+| Sprint 4 | 8–10 | Planner + Validator Agent implementation | Ayushi Singh, Yash Gharat | Completed |
+| Sprint 5 | 11–12 | Integration testing, bug fixes | All | Completed |
+| Sprint 6 | 13–14 | System testing, documentation, report writing | All | Completed |
+| Sprint 7 | 15 | Final submission, presentation prep | All | Completed |
 
 ### 8.2 Task Allocation
 
 | Team Member | Primary Responsibility | Secondary Responsibility |
 |-------------|----------------------|-------------------------|
-| [Student Name 1] | Orchestrator module, system integration | Architecture design, CI/CD |
-| [Student Name 2] | Research Agent, Planner Agent | SRS documentation |
-| [Student Name 3] | Validator Agent, testing framework | Test plan, final report |
+| Dhanika Bhat | Orchestrator module, system integration | Architecture design, CI/CD |
+| Ayushi Singh | Research Agent, Planner Agent | SRS documentation |
+| Yash Gharat | Validator Agent, testing framework | Test plan, final report |
 
 ### 8.3 Risk Analysis
 
@@ -511,7 +652,7 @@ every pull request, so this number stays visible as the code changes.
 | R-02 | Scope creep due to feature additions | High | Medium | Freeze scope after Sprint 2; use change request process |
 | R-03 | Team member unavailability during exams | Medium | Medium | Front-load critical implementation; maintain detailed documentation |
 | R-04 | Integration failures between agents | Medium | High | Define shared schemas early; continuous integration testing |
-| R-05 | [Risk placeholder] | [Prob] | [Impact] | [Mitigation] |
+| R-05 | No local runtime in the dev sandbox — bugs only surface in CI | Medium | Medium | Keep PRs small; rely on rich CI annotations and the Mock provider so every change is verifiable in CI |
 
 ---
 
@@ -519,31 +660,39 @@ every pull request, so this number stays visible as the code changes.
 
 ### 9.1 Conclusion
 
-[Summarise what was achieved. Restate objectives and indicate which were met. Reflect on the software engineering process followed.]
+The project delivered a working, production-grade multi-agent AI system built on an orchestrator-agent architecture. A central Orchestrator coordinates a Planner, Research, and Validator agent to turn a single task into a verified result, with dependency-ordered parallel research and a validate-and-retry loop. All five objectives of §1.3 were met: the modular architecture (O1) and specialised agents (O2) are implemented behind a typed inter-agent contract (O3); correctness is covered by unit, integration, and end-to-end tests with a CI coverage gate (O4); and the system is delivered as a containerised, observable, multi-user service with a benchmark that measures the multi-agent approach against a single-agent baseline (O5). The process followed Agile sprints with feature branches, conventional commits, pull requests, and a CI pipeline that enforces linting, type-checking, tests, security scanning, and end-to-end checks on every change.
 
 ### 9.2 Future Scope
 
 - **Agent Expansion:** Add new specialised agents (e.g., Code Generation Agent, Summarisation Agent) without modifying the orchestrator core.
 - **Persistent Memory:** Implement agent memory/context windows for multi-turn task execution.
-- **Web Interface:** *(Implemented in Phase E — `frontend/`.)* Possible extensions: live step streaming instead of polling, and a metrics dashboard across runs.
-- **Production Deployment:** Containerise with Docker and deploy to cloud infrastructure.
-- [Additional future scope item]
+- **Persistent agent memory:** multi-turn tasks where later runs reuse context from earlier ones.
+- **Response caching:** a Redis-backed cache keyed on (model, system, prompt) to cut cost and latency on repeated sub-tasks.
+- **Richer retrieval:** additional `SearchTool` implementations (web search, document stores) beyond the current Wikipedia grounding.
+- **Cloud hosting:** deploy the existing Compose stack to managed infrastructure with uptime guarantees (currently deployable but not operated as a public service).
+- **Human-in-the-loop review:** an optional approval step before a result is returned for high-stakes tasks.
 
 ---
 
 ## 10. References
 
-> *Use IEEE format.*
+[1] Q. Wu, G. Bansal, J. Zhang, Y. Wu, B. Li, E. Zhu, L. Jiang, X. Zhang, S. Zhang, J. Liu, A. H. Awadallah, R. W. White, D. Burger, and C. Wang, "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation," 2023. [Online]. Available: https://arxiv.org/abs/2308.08155
 
-[1] [Author(s)], "[Title]," *[Journal/Conference]*, vol. [X], no. [Y], pp. [XX–YY], [Year]. doi: [DOI].
+[2] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, and Y. Cao, "ReAct: Synergizing Reasoning and Acting in Language Models," in *Proc. Int. Conf. on Learning Representations (ICLR)*, 2023. [Online]. Available: https://arxiv.org/abs/2210.03629
 
-[2] [Author(s)], "[Title]," *[Journal/Conference]*, [Year]. [Online]. Available: [URL].
+[3] Significant Gravitas, "AutoGPT," GitHub repository, 2023. [Online]. Available: https://github.com/Significant-Gravitas/AutoGPT
 
-[3] [Author(s)], "[Title]," [Publisher], [Year].
+[4] LangChain, "LangGraph Documentation," 2024. [Online]. Available: https://langchain-ai.github.io/langgraph/
 
-[4] Python Software Foundation, "Python 3.10 Documentation," [Online]. Available: https://docs.python.org/3.10/
+[5] S. Ramírez, "FastAPI Documentation," [Online]. Available: https://fastapi.tiangolo.com/
 
-[5] Pydantic, "Pydantic v2 Documentation," [Online]. Available: https://docs.pydantic.dev/
+[6] Pydantic, "Pydantic v2 Documentation," [Online]. Available: https://docs.pydantic.dev/
+
+[7] Meta Open Source, "React Documentation," [Online]. Available: https://react.dev/
+
+[8] pytest Development Team, "pytest Documentation," [Online]. Available: https://docs.pytest.org/
+
+[9] Python Software Foundation, "Python 3.10 Documentation," [Online]. Available: https://docs.python.org/3.10/
 
 ---
 

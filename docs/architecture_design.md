@@ -7,9 +7,9 @@
 | Field | Details |
 |---|---|
 | **Document Version** | 1.0 |
-| **Date** | [DD/MM/YYYY] |
-| **Prepared By** | [Student Name 1], [Student Name 2], [Student Name 3] |
-| **Faculty Guide** | Prof. [Faculty Name] |
+| **Date** | _(date — fill before submission)_ |
+| **Prepared By** | Dhanika Bhat, Ayushi Singh, Yash Gharat |
+| **Faculty Guide** | Prof. _(faculty name — fill before submission)_ |
 
 ---
 
@@ -331,5 +331,5 @@ The architecture is designed for easy extension:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | [DD/MM/YYYY] | [Student Name 1] | Initial architecture design |
+| 1.0 | _(date — fill before submission)_ | Dhanika Bhat | Initial architecture design |
 | | | | |

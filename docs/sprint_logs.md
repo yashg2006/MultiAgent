@@ -6,8 +6,8 @@
 
 | Field | Details |
 |---|---|
-| **Team Members** | [Student Name 1] (Reg: [XXXXXXXXX]), [Student Name 2] (Reg: [XXXXXXXXX]), [Student Name 3] (Reg: [XXXXXXXXX]) |
-| **Faculty Guide** | Prof. [Faculty Name] |
+| **Team Members** | Dhanika Bhat (Reg: 24BRS1356), Ayushi Singh (Reg: 24BRS1369), Yash Gharat (Reg: 24BRS1357) |
+| **Faculty Guide** | Prof. _(faculty name — fill before submission)_ |
 | **Methodology** | [Agile (Scrum) / Waterfall — confirm with course handout] |
 
 ---
@@ -34,7 +34,7 @@ Report                                     ████████████
 
 ## Task Allocation Matrix
 
-| Task | [Student Name 1] | [Student Name 2] | [Student Name 3] |
+| Task | Dhanika Bhat | Ayushi Singh | Yash Gharat |
 |------|:-:|:-:|:-:|
 | Repository setup & scaffolding | ✅ Lead | Support | Support |
 | SRS document drafting | Support | ✅ Lead | Support |
@@ -63,7 +63,7 @@ Report                                     ████████████
 | R-03 | Team member unavailability during mid-term exams | Medium | Medium | Front-load critical work in Sprints 1–3; maintain documentation so others can pick up tasks | Open |
 | R-04 | Integration failures between agents (schema mismatches) | Medium | High | Define shared Pydantic schemas in Sprint 1; continuous integration testing from Sprint 3 | Open |
 | R-05 | GitHub Actions CI pipeline configuration issues | Low | Low | Test workflow locally with `act`; keep workflow simple | Open |
-| R-06 | [Placeholder risk] | [Prob] | [Impact] | [Mitigation] | Open |
+| R-06 | No shared local runtime; bugs only surface in CI | Medium | Medium | Small PRs; rich CI annotations; Mock provider for determinism | Mitigated |
 
 ---
 
@@ -76,13 +76,13 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | Establish project infrastructure and draft initial SRS. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
-**Meeting 1 — [DD/MM/YYYY]**
+**Meeting 1 — _(date)_**
 | Field | Details |
 |---|---|
-| Attendees | [Student Name 1], [Student Name 2], [Student Name 3] |
-| Duration | [X] minutes |
+| Attendees | Dhanika Bhat, Ayushi Singh, Yash Gharat |
+| Duration | _(duration)_ |
 | Agenda | Kick-off, project topic finalisation, repository setup |
 | Discussion | [Key discussion points] |
 | Decisions | [Decisions made — e.g., chose orchestrator-agent pattern, Python + Pydantic stack] |
@@ -91,9 +91,9 @@ Report                                     ████████████
 
 | Item | Assigned To | Deadline | Status |
 |------|-------------|----------|--------|
-| Create GitHub repository with scaffolding | [Student Name 1] | [Date] | [Done/In Progress] |
-| Draft SRS Sections 1–2 | [Student Name 2] | [Date] | [Done/In Progress] |
-| Research existing multi-agent systems for lit survey | [Student Name 3] | [Date] | [Done/In Progress] |
+| Create GitHub repository with scaffolding | Dhanika Bhat | — | Done |
+| Draft SRS Sections 1–2 | Ayushi Singh | — | Done |
+| Research existing multi-agent systems for lit survey | Yash Gharat | — | Done |
 
 **Sprint Retrospective:**
 - **What went well:** [e.g., repo setup completed on day 1]
@@ -107,13 +107,13 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | Finalise architecture design and agent interface contracts. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
-**Meeting 2 — [DD/MM/YYYY]**
+**Meeting 2 — _(date)_**
 | Field | Details |
 |---|---|
-| Attendees | [Student Name 1], [Student Name 2], [Student Name 3] |
-| Duration | [X] minutes |
+| Attendees | Dhanika Bhat, Ayushi Singh, Yash Gharat |
+| Duration | _(duration)_ |
 | Agenda | Architecture review, schema finalisation, sprint planning |
 | Discussion | [Key discussion points] |
 | Decisions | [Decisions made] |
@@ -122,10 +122,10 @@ Report                                     ████████████
 
 | Item | Assigned To | Deadline | Status |
 |------|-------------|----------|--------|
-| Create architecture diagram | [Student Name 1] | [Date] | [Done/In Progress] |
-| Define AgentRequest/AgentResponse schemas | [Student Name 1] | [Date] | [Done/In Progress] |
-| Complete SRS functional requirements | [Student Name 2] | [Date] | [Done/In Progress] |
-| Draft use case diagrams | [Student Name 3] | [Date] | [Done/In Progress] |
+| Create architecture diagram | Dhanika Bhat | — | Done |
+| Define AgentRequest/AgentResponse schemas | Dhanika Bhat | — | Done |
+| Complete SRS functional requirements | Ayushi Singh | — | Done |
+| Draft use case diagrams | Yash Gharat | — | Done |
 
 **Sprint Retrospective:**
 - **What went well:** [Fill]
@@ -139,13 +139,13 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | Implement Orchestrator core and Research Agent. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
-**Meeting 3 — [DD/MM/YYYY]**
+**Meeting 3 — _(date)_**
 | Field | Details |
 |---|---|
 | Attendees | [Names] |
-| Duration | [X] minutes |
+| Duration | _(duration)_ |
 | Agenda | [Agenda] |
 | Discussion | [Discussion] |
 | Decisions | [Decisions] |
@@ -154,10 +154,10 @@ Report                                     ████████████
 
 | Item | Assigned To | Deadline | Status |
 |------|-------------|----------|--------|
-| Implement Orchestrator `run()` method | [Student Name 1] | [Date] | [Status] |
-| Implement Research Agent `execute()` | [Student Name 2] | [Date] | [Status] |
-| Write unit tests for Orchestrator | [Student Name 1] | [Date] | [Status] |
-| Write unit tests for Research Agent | [Student Name 2] | [Date] | [Status] |
+| Implement Orchestrator `run()` method | Dhanika Bhat | — | Done |
+| Implement Research Agent `execute()` | Ayushi Singh | — | Done |
+| Write unit tests for Orchestrator | Dhanika Bhat | — | Done |
+| Write unit tests for Research Agent | Ayushi Singh | — | Done |
 
 **Sprint Retrospective:**
 - **What went well:** [Fill]
@@ -171,7 +171,7 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | Implement Planner Agent and Validator Agent. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
 **[Meeting minutes template — same format as above]**
 
@@ -182,7 +182,7 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | End-to-end integration testing and bug fixing. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
 **[Meeting minutes template — same format as above]**
 
@@ -193,7 +193,7 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | System testing, documentation completion, and report writing. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
 **[Meeting minutes template — same format as above]**
 
@@ -204,7 +204,7 @@ Report                                     ████████████
 | Field | Details |
 |---|---|
 | **Sprint Goal** | Final submission, presentation preparation. |
-| **Sprint Dates** | [DD/MM/YYYY] — [DD/MM/YYYY] |
+| **Sprint Dates** | _(sprint dates — fill before submission)_ |
 
 **[Meeting minutes template — same format as above]**
 
@@ -214,25 +214,28 @@ Report                                     ████████████
 
 | ID | User Story / Task | Priority | Sprint | Status |
 |----|------------------|----------|--------|--------|
-| BL-01 | As a user, I want to submit a task and receive results | High | Sprint 3 | [Status] |
-| BL-02 | As a developer, I want shared schemas for agent communication | High | Sprint 2 | [Status] |
-| BL-03 | As a user, I want the system to retry on API failures | Medium | Sprint 4 | [Status] |
-| BL-04 | [Placeholder] | [Priority] | [Sprint] | [Status] |
+| BL-01 | As a user, I want to submit a task and receive results | High | Sprint 3 | Done |
+| BL-02 | As a developer, I want shared schemas for agent communication | High | Sprint 2 | Done |
+| BL-03 | As a user, I want the system to retry on API failures | Medium | Sprint 4 | Done |
+| BL-04 | As a user, I want a live trace of each run and the ability to cancel it | Medium | Sprint 5 | Done |
 
 ---
 
 ## Burndown Tracking (if using Agile)
 
-> *[Insert burndown chart image or data after each sprint]*
+> Progress was tracked through the GitHub pull-request history (one PR per phase, A–F) and the CI status on each. A burndown chart can be generated from the issue/PR close dates if the rubric requires one.
 >
-> *![Burndown Chart](../diagrams/exports/burndown_chart.png)*
+
+Story points were not tracked numerically; the table below is left for the team
+to fill if the rubric requires story-point velocity. Each sprint corresponds to
+one build phase (A–F) delivered as a merged pull request.
 
 | Sprint | Planned Story Points | Completed | Remaining |
 |--------|---------------------|-----------|-----------|
-| Sprint 1 | [X] | [Y] | [Z] |
-| Sprint 2 | [X] | [Y] | [Z] |
-| Sprint 3 | [X] | [Y] | [Z] |
-| Sprint 4 | [X] | [Y] | [Z] |
-| Sprint 5 | [X] | [Y] | [Z] |
-| Sprint 6 | [X] | [Y] | [Z] |
-| Sprint 7 | [X] | [Y] | [Z] |
+| Sprint 1 | — | — | — |
+| Sprint 2 | — | — | — |
+| Sprint 3 | — | — | — |
+| Sprint 4 | — | — | — |
+| Sprint 5 | — | — | — |
+| Sprint 6 | — | — | — |
+| Sprint 7 | — | — | — |
