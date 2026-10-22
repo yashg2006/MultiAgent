@@ -23,5 +23,3 @@ testpaths = ["tests"]
 source = ["src"]
 omit = ["generate_da1.py"]
 
-[tool.mutmut]
-paths_to_mutate = ["src/shared/retry.py", "src/shared/resilience.py"]
