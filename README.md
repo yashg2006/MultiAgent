@@ -100,7 +100,22 @@ CI runs lint (ruff, black), type checks (mypy, tsc), both test suites, and a
 production frontend build on every pull request, then re-runs the database and
 queue tests against real Postgres and Redis, and posts coverage on the PR.
 
-## Running with workers
+## Run the whole stack with Docker
+
+The simplest way to run everything (API, workers, Postgres, Redis, the
+nginx-served UI, Prometheus, and Grafana):
+
+```bash
+cp .env.docker.example .env     # set JWT_SECRET and POSTGRES_PASSWORD
+make up                         # docker compose up --build -d
+```
+
+Then open the UI at http://localhost:8080, Prometheus at :9090, and Grafana at
+:3000 (admin / the password in `.env`). `make down` stops it and removes the
+volumes. To use real Claude, set `LLM_PROVIDER=anthropic` and
+`ANTHROPIC_API_KEY` in `.env`.
+
+## Running with workers (without Docker)
 
 By default tasks run inside the API process. To run them on separate workers
 (what production uses), start Redis and set `QUEUE_BACKEND=redis` for both

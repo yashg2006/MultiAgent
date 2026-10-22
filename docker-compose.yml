@@ -1,0 +1,112 @@
+# Full stack: Postgres, Redis, the API, workers, the frontend (nginx), and
+# Prometheus + Grafana. Copy .env.docker.example to .env and set JWT_SECRET
+# and POSTGRES_PASSWORD before `docker compose up`.
+name: multiagent
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/multiagent
+  REDIS_URL: redis://redis:6379/0
+  QUEUE_BACKEND: redis
+  LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+  MOCK_LATENCY_SECONDS: ${MOCK_LATENCY_SECONDS:-0}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-5-5}
+  SEARCH_TOOL: ${SEARCH_TOOL:-wikipedia}
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+  ENV: production
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  TRUST_PROXY_HEADERS: "true"
+  LOG_FORMAT: json
+  AUTO_MIGRATE: "false"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: multiagent
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Applies database migrations once, before the API and workers start.
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: .
+    image: multiagent-api:latest
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: .
+    command: arq src.worker.main.WorkerSettings
+    environment: *backend-env
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+
+volumes:
+  pgdata:

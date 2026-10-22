@@ -56,7 +56,7 @@ jobs:
     - name: Run pytest with coverage
       run: |
         set +e
-        pytest --cov=src --cov-report=term-missing --cov-report=xml -rfE -q > pytest.txt 2>&1
+        pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=80 -rfE -q > pytest.txt 2>&1
         code=$?
         tail -40 pytest.txt
         if [ $code -ne 0 ]; then
@@ -149,3 +149,115 @@ jobs:
           exit 1
         fi
         tail -8 build.txt | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::notice title=Build output::/'
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    # Dependency audits. Reported as annotations; an upstream advisory we can't
+    # fix shouldn't block the build, so these don't hard-fail.
+    - name: Python dependency audit (pip-audit)
+      run: |
+        python -m pip install --upgrade pip pip-audit
+        pip install -r requirements.txt
+        pip-audit --progress-spinner off 2>&1 | tee pip-audit.txt || true
+        echo "::notice title=pip-audit::$(grep -cE '^[A-Za-z0-9_.-]+ +[0-9]' pip-audit.txt || echo 0) vulnerable package line(s); see log"
+
+    - name: Node dependency audit (npm audit)
+      working-directory: frontend
+      run: |
+        npm install --no-audit --no-fund
+        npm audit --audit-level=high 2>&1 | tee ../npm-audit.txt || true
+        echo "::notice title=npm audit::$(grep -c 'vulnerabilities' ../npm-audit.txt || echo 0) summary line(s); see log"
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Write compose env
+      run: |
+        cat > .env <<ENV
+        JWT_SECRET=e2e-ci-secret-$GITHUB_RUN_ID
+        POSTGRES_PASSWORD=postgres
+        LLM_PROVIDER=mock
+        SEARCH_TOOL=none
+        FRONTEND_PORT=8080
+        ENV
+
+    - name: Build and start the stack
+      run: |
+        set -o pipefail
+        # Core services only (no Prometheus/Grafana) for a faster E2E run.
+        # MOCK_LATENCY makes runs last a few seconds so the live view and
+        # cancellation are exercised.
+        export MOCK_LATENCY_SECONDS=1.2
+        if ! docker compose up --build -d postgres redis migrate api worker frontend; then
+          echo "::error title=compose up::failed to build or start the stack"
+          docker compose ps -a
+          docker compose logs migrate api | tail -120 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error title=compose up logs::/'
+          exit 1
+        fi
+        # Wait until the API reports ready through the nginx proxy (200).
+        ready=""
+        for i in $(seq 1 90); do
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ready || echo 000)
+          if [ "$code" = "200" ]; then ready="yes after ${i}s"; break; fi
+          sleep 2
+        done
+        if [ -z "$ready" ]; then
+          echo "::error title=readiness::/ready did not return 200"
+          docker compose ps -a
+          docker compose logs migrate api worker | tail -150 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error title=stack logs::/'
+          exit 1
+        fi
+        echo "Stack ready ($ready)"
+
+    - name: Install Playwright and run E2E
+      working-directory: frontend
+      env:
+        BASE_URL: http://localhost:8080
+      run: |
+        npm install --no-audit --no-fund
+        npx playwright install --with-deps chromium
+        if npx playwright test; then
+          echo "::notice title=E2E::Playwright end-to-end tests passed"
+        else
+          echo "::error title=E2E::Playwright end-to-end tests failed"
+          docker compose -f ../docker-compose.yml logs api worker | tail -80
+          exit 1
+        fi
+
+    - name: Upload Playwright report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report
+        path: frontend/playwright-report
+        if-no-files-found: ignore
+
+    - name: Scan the backend image (Trivy)
+      if: always()
+      continue-on-error: true
+      run: |
+        # Install the Trivy CLI (avoids pinning a marketplace-action tag).
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+          | sh -s -- -b /usr/local/bin
+        trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+          --exit-code 0 --no-progress multiagent-api:latest | tee trivy.txt
+        echo "::notice title=Trivy::$(grep -cE 'CVE-' trivy.txt || echo 0) HIGH/CRITICAL fixable finding line(s) in the backend image"
+
+    - name: Stop the stack
+      if: always()
+      run: docker compose down -v

@@ -238,6 +238,25 @@ Postgres/Redis integration pass; frontend 34/34.
 | OBS-11..12 | `/tasks/stats/summary` aggregates only the signed-in user's runs (totals, success rate, usage) and requires sign-in | Pass |
 | FE-32..33 | Metrics page invites a first run when empty; shows totals, success rate, and outcome counts | Pass |
 
+### 3.7h Deployment and End-to-End Test Cases (Phase F5)
+
+From CI run [39713566362](https://github.com/yashg2006/MultiAgent/actions/runs/39713566362)
+(PR #8): all four CI jobs green. The `e2e` job builds every image with
+`docker compose`, starts the full stack (Postgres, Redis, migrate, API, 2
+workers, nginx frontend), waits for `/ready`, and runs Playwright against the
+running stack on `:8080`; the `security` job runs pip-audit and npm audit, and
+Trivy scans the backend image.
+
+| Test ID | What is verified (`frontend/e2e/app.spec.ts`, CI) | Status |
+|---------|------------------|--------|
+| E2E-01 | Register, run a task, watch the live step trace, see findings, history entry, and the Markdown export button | Pass |
+| E2E-02 | Cancel a running task; the cancelled status shows and finished steps are kept | Pass |
+| E2E-03 | A second user cannot open the first user's run link (sees an error) | Pass |
+| E2E-04 | A protected page redirects to sign-in when signed out | Pass |
+| DEP-01 | `docker compose up` builds and starts all core services; `/ready` returns 200 through the nginx proxy | Pass |
+| SEC-01 | Trivy image scan runs (2 HIGH/CRITICAL fixable findings in upstream base/packages, reported, non-blocking) | Reported |
+| SEC-02 | pip-audit and npm audit run on every PR | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
@@ -324,3 +343,4 @@ handler in `src/api/routes.py`.
 | 1.3 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F2 infrastructure cases (§3.7e), incl. Postgres/Redis integration pass |
 | 1.4 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F3 accounts and access cases (§3.7f) |
 | 1.5 | 22/10/2026 | Yash Gharat (with Claude Code) | Added Phase F4 observability cases (§3.7g); coverage 98% |
+| 1.6 | 22/10/2026 | Yash Gharat (with Claude Code) | Added Phase F5 deployment and E2E cases (§3.7h) |

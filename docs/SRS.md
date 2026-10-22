@@ -184,6 +184,8 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | NFR-06 | **Usability** | The system shall provide clear error messages and execution logs. |
 | NFR-07 | **Portability** | The system shall run on Windows, macOS, and Linux without platform-specific modifications. |
 | NFR-08 | **Testability** | All modules shall be testable in isolation using mock objects for external dependencies. |
+| NFR-09 | **Deployability** | The whole system shall build and run with a single `docker compose up`: Postgres, Redis, a migration step, the API, worker processes, the nginx-served frontend, Prometheus, and Grafana, each with a healthcheck. |
+| NFR-10 | **Supply-chain security** | CI shall scan the backend image (Trivy) and dependencies (pip-audit, npm audit) on every pull request and report findings. |
 
 ---
 
