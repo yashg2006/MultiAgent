@@ -163,6 +163,15 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 | FR-U-04 | Failed sign-ins shall return one message regardless of whether the email exists, with equal hashing work in both cases. | Medium |
 | FR-U-05 | Sign-in/registration attempts per client IP and new runs per user shall be rate-limited per minute (defaults 10 and 20), answering HTTP 429 with `Retry-After`. | Medium |
 
+#### 3.1.8 Observability
+
+| Req ID | Requirement | Priority |
+|--------|-------------|----------|
+| FR-OB-01 | Every log line shall carry a request id and, within a run, the task id, so a run can be followed across the API and worker. `LOG_FORMAT=json` emits one JSON object per line. | Medium |
+| FR-OB-02 | The API shall expose Prometheus metrics at `/metrics`, and each worker on `WORKER_METRICS_PORT`: HTTP request count/latency, run count by status, run and step duration, LLM calls/retries/tokens/estimated cost, and validator pass/fail. | Medium |
+| FR-OB-03 | A provisioned Grafana dashboard shall chart run throughput, validator pass rate, latency percentiles, token use, cost, retry rate, and HTTP rate. | Low |
+| FR-OB-04 | `GET /tasks/stats/summary` shall return the signed-in user's run totals, success rate, and model usage, shown on a metrics page in the UI. | Low |
+
 ### 3.2 Non-Functional Requirements
 
 | Req ID | Category | Requirement |

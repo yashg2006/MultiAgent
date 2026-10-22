@@ -20,7 +20,9 @@ from src.worker.pipeline import execute_task
 class TaskQueue(Protocol):
     name: str
 
-    async def enqueue(self, task_id: str, background: BackgroundTasks) -> None: ...
+    async def enqueue(
+        self, task_id: str, background: BackgroundTasks, request_id: str | None = None
+    ) -> None: ...
 
     async def ping(self) -> bool: ...
 
@@ -30,8 +32,10 @@ class TaskQueue(Protocol):
 class InlineQueue:
     name = "inline"
 
-    async def enqueue(self, task_id: str, background: BackgroundTasks) -> None:
-        background.add_task(execute_task, task_id)
+    async def enqueue(
+        self, task_id: str, background: BackgroundTasks, request_id: str | None = None
+    ) -> None:
+        background.add_task(execute_task, task_id, request_id=request_id)
 
     async def ping(self) -> bool:
         return True
@@ -53,9 +57,11 @@ class RedisQueue:
 
         return cls(await create_pool(RedisSettings.from_dsn(redis_url)))
 
-    async def enqueue(self, task_id: str, background: BackgroundTasks) -> None:
+    async def enqueue(
+        self, task_id: str, background: BackgroundTasks, request_id: str | None = None
+    ) -> None:
         # Using the task id as the job id makes enqueueing idempotent.
-        await self.pool.enqueue_job("run_task", task_id, _job_id=task_id)
+        await self.pool.enqueue_job("run_task", task_id, request_id, _job_id=task_id)
 
     async def ping(self) -> bool:
         try:

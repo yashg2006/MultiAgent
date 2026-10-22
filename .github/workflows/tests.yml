@@ -55,7 +55,19 @@ jobs:
 
     - name: Run pytest with coverage
       run: |
-        pytest --cov=src --cov-report=term-missing --cov-report=xml
+        set +e
+        pytest --cov=src --cov-report=term-missing --cov-report=xml -rfE -q > pytest.txt 2>&1
+        code=$?
+        tail -40 pytest.txt
+        if [ $code -ne 0 ]; then
+          # Make the failure summary visible as annotations (CI logs are not
+          # downloadable from every environment).
+          sed -n '/=\{3,\} \(FAILURES\|ERRORS\) =\{3,\}/,/=\{3,\} short test summary/p' pytest.txt \
+            | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' \
+            | sed 's/^/::error title=pytest failures::/'
+          grep -E "^(FAILED|ERROR)" pytest.txt | sed 's/%/%25/g; s/^/::error title=pytest::/'
+        fi
+        exit $code
 
     # Surface coverage as a check-run annotation + job summary so it is visible
     # on the PR page (and readable via the GitHub API) without downloading the
@@ -80,7 +92,7 @@ jobs:
         TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/multiagent_test
         REDIS_URL: redis://localhost:6379/0
       run: |
-        python -m pytest tests/test_api.py tests/test_auth.py tests/test_worker.py tests/test_migrations.py \
+        python -m pytest tests/test_api.py tests/test_auth.py tests/test_worker.py tests/test_migrations.py tests/test_observability.py \
           -p no:cacheprovider -q -rs --junitxml=integration.xml
         python - <<'PY'
         import xml.etree.ElementTree as ET

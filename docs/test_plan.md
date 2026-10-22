@@ -224,6 +224,20 @@ frontend 31/31. All existing API tests now run as a signed-in user.
 | AUTH-17..21 | Sign-in attempts limited per IP (401, 401, 429); runs limited per user with `Retry-After`; in-memory window resets each minute; Redis limiter counts and expires keys; `X-Forwarded-For` trusted only when configured | Pass |
 | FE-28..31 | `getMe` returns null when signed out; signed-out visitors redirected to sign-in; sign-in returns to the app showing the user; API validation messages shown as plain sentences | Pass |
 
+### 3.7g Observability Test Cases (Phase F4)
+
+From CI run [39711239713](https://github.com/yashg2006/MultiAgent/actions/runs/39711239713)
+(PR #7): all pass; backend coverage **98% (1436 statements, 33 missed)** with
+`src/api/middleware.py` 100% and `src/shared/observability.py` 98%; 66-case
+Postgres/Redis integration pass; frontend 34/34.
+
+| Test ID | What is verified (`test_observability.py`, `test_api.py`, `MetricsPage.test.tsx`) | Status |
+|---------|------------------|--------|
+| OBS-01..06 | ContextFilter attaches request/task ids; JSON formatter emits one object with ids and extras and omits unset ids; text formatter includes ids only when set; record_step counts calls and validator verdicts; record_run counts by status | Pass |
+| OBS-07..10 | `/metrics` returns Prometheus text with `http_requests_total` and `pipeline_runs_total`; every response carries an `X-Request-ID`; a supplied `X-Request-ID` is echoed | Pass |
+| OBS-11..12 | `/tasks/stats/summary` aggregates only the signed-in user's runs (totals, success rate, usage) and requires sign-in | Pass |
+| FE-32..33 | Metrics page invites a first run when empty; shows totals, success rate, and outcome counts | Pass |
+
 ### 3.7 System Test Cases
 
 | Test ID | Test Description | Input | Expected Output | Actual Output | Status |
@@ -309,3 +323,4 @@ handler in `src/api/routes.py`.
 | 1.2 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase E (§3.7c) and Phase F1 (§3.7d) cases; coverage refreshed to 97.5% |
 | 1.3 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F2 infrastructure cases (§3.7e), incl. Postgres/Redis integration pass |
 | 1.4 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F3 accounts and access cases (§3.7f) |
+| 1.5 | 22/10/2026 | Yash Gharat (with Claude Code) | Added Phase F4 observability cases (§3.7g); coverage 98% |

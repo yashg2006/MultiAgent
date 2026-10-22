@@ -61,6 +61,8 @@ made and what they cost. All options are listed in `.env.example`.
 | `GET` | `/tasks` | Recent runs, newest first. |
 | `GET` | `/health` | Liveness check. |
 | `GET` | `/ready` | Readiness: database and queue reachable (503 otherwise). |
+| `GET` | `/metrics` | Prometheus metrics for this API process. |
+| `GET` | `/tasks/stats/summary` | The signed-in user's run totals, success rate, and model usage. |
 
 All `/tasks` routes require sign-in and only return your own runs.
 
@@ -82,6 +84,8 @@ All `/tasks` routes require sign-in and only return your own runs.
 | `AUTO_MIGRATE` | `true` | Apply database migrations when the API starts |
 | `JWT_SECRET` | (random per process) | Session signing key; **required** when `ENV=production` |
 | `COOKIE_SECURE` | `false` | Send the session cookie over HTTPS only (enable behind TLS) |
+| `LOG_FORMAT` | `text` | `json` emits one JSON log object per line |
+| `WORKER_METRICS_PORT` | `9100` | Port each worker serves its Prometheus metrics on |
 | `CORS_ORIGINS` | `http://localhost:5173` | Browser origins allowed to call the API (comma-separated) |
 | `VITE_API_URL` | (empty) | Frontend only: API base URL for a deployed build; the dev server proxies to port 8000 |
 

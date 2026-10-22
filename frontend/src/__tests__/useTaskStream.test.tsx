@@ -105,6 +105,20 @@ describe("useTaskStream", () => {
     expect(hook.result.current).toBe("closed");
   });
 
+  it("waits for done before applying a finished status, so the result isn't lost", () => {
+    const { client } = setup();
+    const source = FakeEventSource.instances[0];
+    // The server sends the finished status first, then done with the full task.
+    act(() => source.emit("status", { status: "success", cancel_requested: false }));
+    expect(client.getQueryData<Task>(["task", "t1"])?.status).toBe("running");
+    act(() =>
+      source.emit("done", { ...task, status: "success", result: { "st-1": { findings: "x" } } }),
+    );
+    const updated = client.getQueryData<Task>(["task", "t1"]);
+    expect(updated?.status).toBe("success");
+    expect(updated?.result).toEqual({ "st-1": { findings: "x" } });
+  });
+
   it("reports reconnecting on a transient error", () => {
     const { hook } = setup();
     act(() => FakeEventSource.instances[0].onerror?.());

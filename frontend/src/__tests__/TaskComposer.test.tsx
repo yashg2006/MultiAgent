@@ -11,7 +11,7 @@ function renderComposer() {
       <MemoryRouter initialEntries={["/"]}>
         <Routes>
           <Route path="/" element={<TaskComposer />} />
-          <Route path="/tasks/:id" element={<p>run page</p>} />
+          <Route path="/runs/:id" element={<p>run page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

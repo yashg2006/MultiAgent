@@ -81,5 +81,9 @@ class Settings(BaseSettings):
     # Take the client IP from X-Forwarded-For (only behind a trusted proxy).
     trust_proxy_headers: bool = False
 
+    # --- Observability -------------------------------------------------------
+    # LOG_FORMAT (text|json), LOG_LEVEL and WORKER_METRICS_PORT are read
+    # directly from the environment by src/shared/utils.py and the worker.
+
 
 settings = Settings()

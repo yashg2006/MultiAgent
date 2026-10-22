@@ -24,7 +24,7 @@ export function TaskHistory() {
       {data.map((task) => (
         <li key={task.id}>
           <NavLink
-            to={`/tasks/${task.id}`}
+            to={`/runs/${task.id}`}
             className={({ isActive }) =>
               `block px-2 py-3 -mx-2 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-action ${
                 isActive ? "bg-white" : "hover:bg-white/60"

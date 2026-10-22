@@ -18,13 +18,14 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from src.api.auth import UserOut, current_user
 from src.api.rate_limit import enforce_rate_limit
 from src.api.schemas import TaskCreateRequest, TaskOut
 from src.shared.config import settings
 from src.shared.db import TERMINAL_STATUSES, RunStepRecord, TaskRecord, session_scope
+from src.shared.observability import request_id_var
 from src.shared.schemas import LLMUsage
 from src.shared.utils import setup_logger
 
@@ -112,7 +113,9 @@ async def create_task(
             return _to_task_out(record, [])
 
     task_out = await run_in_threadpool(insert)
-    await request.app.state.queue.enqueue(task_id, background_tasks)
+    await request.app.state.queue.enqueue(
+        task_id, background_tasks, request_id=request_id_var.get()
+    )
     return task_out
 
 
@@ -212,3 +215,36 @@ async def task_events(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/stats/summary", include_in_schema=True)
+def stats_summary(user: UserOut = Depends(current_user)) -> dict:
+    """Totals across the signed-in user's own runs, for the metrics page."""
+    with session_scope() as session:
+        rows = session.execute(
+            select(TaskRecord.status, func.count())
+            .where(TaskRecord.user_id == user.id)
+            .group_by(TaskRecord.status)
+        ).all()
+        by_status: dict[str, int] = {row[0]: int(row[1]) for row in rows}
+
+        usage_rows = session.scalars(
+            select(RunStepRecord.usage)
+            .join(TaskRecord, TaskRecord.id == RunStepRecord.task_id)
+            .where(TaskRecord.user_id == user.id)
+        ).all()
+
+    total_usage = LLMUsage()
+    for usage in usage_rows:
+        if isinstance(usage, dict):
+            total_usage = total_usage + LLMUsage.model_validate(usage)
+
+    total_runs = sum(by_status.values())
+    finished = {s: by_status.get(s, 0) for s in ("success", "partial", "error", "cancelled")}
+    graded = finished["success"] + finished["partial"] + finished["error"]
+    return {
+        "total_runs": total_runs,
+        "by_status": by_status,
+        "success_rate": round(finished["success"] / graded, 4) if graded else None,
+        "usage": total_usage.model_dump(),
+    }

@@ -13,11 +13,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
 from src.api.auth import router as auth_router
 from src.api.auth import signing_key
+from src.api.middleware import install as install_middleware
 from src.api.queue import RedisQueue, make_queue
 from src.api.rate_limit import InMemoryRateLimiter, RedisRateLimiter
 from src.api.routes import router as tasks_router
@@ -72,6 +74,13 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Last-Event-ID", "Authorization"],
 )
+install_middleware(app)
+
+
+@app.get("/metrics", tags=["meta"])
+def metrics() -> PlainTextResponse:
+    """Prometheus metrics for this API process (workers expose their own)."""
+    return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health", tags=["meta"])

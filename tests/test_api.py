@@ -191,3 +191,44 @@ def test_ready_returns_503_when_database_is_unreachable(client, monkeypatch):
     response = client.get("/ready")
     assert response.status_code == 503
     assert response.json()["database"] == "unavailable"
+
+
+# --- Phase F4: metrics, request id, stats ---------------------------------------
+
+
+def test_metrics_endpoint_exposes_prometheus_text(client):
+    client.post("/tasks", json={"task": "Summarize EDF"})
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    body = response.text
+    assert "http_requests_total" in body
+    assert "pipeline_runs_total" in body
+
+
+def test_every_response_carries_a_request_id(client):
+    response = client.get("/health")
+    assert len(response.headers["x-request-id"]) >= 8
+
+
+def test_supplied_request_id_is_echoed(client):
+    response = client.get("/health", headers={"X-Request-ID": "trace-abc"})
+    assert response.headers["x-request-id"] == "trace-abc"
+
+
+def test_stats_summary_aggregates_only_the_users_runs(client):
+    for task in ("one", "two"):
+        client.post("/tasks", json={"task": task})
+    stats = client.get("/tasks/stats/summary").json()
+    assert stats["total_runs"] == 2
+    assert stats["by_status"]["success"] == 2
+    assert stats["success_rate"] == 1.0
+    assert stats["usage"]["calls"] == 10  # 5 steps x 2 runs
+
+    client.cookies.clear()
+    client.post("/auth/register", json={"email": "carol@example.com", "password": "password-1234"})
+    assert client.get("/tasks/stats/summary").json()["total_runs"] == 0
+
+
+def test_stats_summary_requires_sign_in(anon_client):
+    assert anon_client.get("/tasks/stats/summary").status_code == 401

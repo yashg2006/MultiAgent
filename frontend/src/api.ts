@@ -1,4 +1,4 @@
-import type { Task, User } from "./types";
+import type { Stats, Task, User } from "./types";
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? "";
 
@@ -53,6 +53,10 @@ export function listTasks(): Promise<Task[]> {
 
 export function getTask(id: string): Promise<Task> {
   return request<Task>(`/tasks/${encodeURIComponent(id)}`);
+}
+
+export function getStats(): Promise<Stats> {
+  return request<Stats>("/tasks/stats/summary");
 }
 
 export function cancelTask(id: string): Promise<Task> {
