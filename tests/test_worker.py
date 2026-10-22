@@ -156,7 +156,7 @@ def test_redis_queue_enqueues_idempotent_job_and_reports_health():
         return healthy
 
     assert asyncio.run(scenario()) is False
-    assert pool.jobs == [("run_task", ("t-7",), {"_job_id": "t-7"})]
+    assert pool.jobs == [("run_task", ("t-7", None), {"_job_id": "t-7"})]
     assert pool.closed
 
 
