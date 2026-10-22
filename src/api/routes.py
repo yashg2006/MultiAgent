@@ -226,7 +226,7 @@ def stats_summary(user: UserOut = Depends(current_user)) -> dict:
             .where(TaskRecord.user_id == user.id)
             .group_by(TaskRecord.status)
         ).all()
-        by_status = {status: count for status, count in rows}
+        by_status: dict[str, int] = {row[0]: int(row[1]) for row in rows}
 
         usage_rows = session.scalars(
             select(RunStepRecord.usage)

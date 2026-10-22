@@ -15,10 +15,10 @@ from __future__ import annotations
 import time
 import uuid
 
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import FastAPI
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.types import ASGIApp
 
 from src.shared.observability import (
     HTTP_LATENCY,
@@ -36,7 +36,7 @@ def route_template(request: Request) -> str:
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
         request_token = request_id_var.set(request_id)
         task_token = task_id_var.set(None)
@@ -50,7 +50,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         start = time.perf_counter()
         response = await call_next(request)
         route = route_template(request)
@@ -61,7 +61,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def install(app: ASGIApp) -> None:
+def install(app: FastAPI) -> None:
     """Add both middlewares. Request context is added last so it runs first."""
     app.add_middleware(MetricsMiddleware)
     app.add_middleware(RequestContextMiddleware)
