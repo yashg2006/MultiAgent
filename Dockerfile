@@ -9,6 +9,7 @@ WORKDIR /app
 
 # System deps: libpq for psycopg, curl for container healthchecks.
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends libpq5 curl \
     && rm -rf /var/lib/apt/lists/*
 

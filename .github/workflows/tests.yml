@@ -198,17 +198,31 @@ jobs:
 
     - name: Build and start the stack
       run: |
+        set -o pipefail
         # Core services only (no Prometheus/Grafana) for a faster E2E run.
         # MOCK_LATENCY makes runs last a few seconds so the live view and
         # cancellation are exercised.
-        MOCK_LATENCY_SECONDS=1.2 docker compose up --build -d \
-          postgres redis migrate api worker frontend
-        echo "Waiting for the frontend to answer..."
-        for i in $(seq 1 60); do
-          if curl -fsS http://localhost:8080/ > /dev/null 2>&1; then echo "up after ${i}s"; break; fi
+        export MOCK_LATENCY_SECONDS=1.2
+        if ! docker compose up --build -d postgres redis migrate api worker frontend; then
+          echo "::error title=compose up::failed to build or start the stack"
+          docker compose ps -a
+          docker compose logs migrate api | tail -120 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error title=compose up logs::/'
+          exit 1
+        fi
+        # Wait until the API reports ready through the nginx proxy (200).
+        ready=""
+        for i in $(seq 1 90); do
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ready || echo 000)
+          if [ "$code" = "200" ]; then ready="yes after ${i}s"; break; fi
           sleep 2
         done
-        curl -fsS http://localhost:8080/ready || (docker compose logs api | tail -40; exit 1)
+        if [ -z "$ready" ]; then
+          echo "::error title=readiness::/ready did not return 200"
+          docker compose ps -a
+          docker compose logs migrate api worker | tail -150 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error title=stack logs::/'
+          exit 1
+        fi
+        echo "Stack ready ($ready)"
 
     - name: Install Playwright and run E2E
       working-directory: frontend
