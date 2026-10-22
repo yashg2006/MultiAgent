@@ -586,7 +586,7 @@ hand-entered.
 *(The chart shows the latest committed run. With `ANTHROPIC_API_KEY` set, the Evidence workflow instead produces `benchmark-anthropic.png` with real quality and cost figures.)*
 
 *Table: [`docs/results/benchmark-mock.md`](results/benchmark-mock.md)
-(or `benchmark-mock.md` for the offline run). These files are produced by the
+(or `benchmark-anthropic.md` when the Evidence workflow is run with an API key). These files are produced by the
 Evidence workflow; run it once to populate them.*
 
 ### 7.3 Performance Characteristics
