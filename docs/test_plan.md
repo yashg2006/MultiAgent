@@ -7,10 +7,10 @@
 | Field | Details |
 |---|---|
 | **Document Version** | 1.0 |
-| **Date** | [DD/MM/YYYY] |
-| **Prepared By** | [Student Name 3] |
-| **Reviewed By** | [Student Name 1], [Student Name 2] |
-| **Faculty Guide** | Prof. [Faculty Name] |
+| **Date** | _(date — fill before submission)_ |
+| **Prepared By** | Yash Gharat |
+| **Reviewed By** | Dhanika Bhat, Ayushi Singh |
+| **Faculty Guide** | Prof. _(faculty name — fill before submission)_ |
 
 ---
 
@@ -39,8 +39,8 @@ This document defines the test plan, test strategy, and test cases for the Multi
 | Level | Description | Responsibility |
 |-------|-------------|----------------|
 | **Unit Testing** | Test individual functions and methods in isolation using mocks for external dependencies. | All team members (per module ownership) |
-| **Integration Testing** | Test the interaction between Orchestrator and Agents with mocked LLM APIs. | [Student Name 1] |
-| **System Testing** | Test the complete pipeline end-to-end with real or sandbox API calls. | [Student Name 3] |
+| **Integration Testing** | Test the interaction between Orchestrator and Agents with mocked LLM APIs. | Dhanika Bhat |
+| **System Testing** | Test the complete pipeline end-to-end with real or sandbox API calls. | Yash Gharat |
 
 ### 2.2 Test Tools and Frameworks
 
@@ -60,7 +60,7 @@ This document defines the test plan, test strategy, and test cases for the Multi
 **Exit Criteria:**
 - All planned test cases are executed.
 - All critical and high-priority test cases pass.
-- Code coverage meets the minimum threshold (target: ≥ 70% overall; see §6).
+- Code coverage meets the CI gate (≥ 80% overall; see §6).
 
 ---
 
@@ -290,54 +290,36 @@ Trivy scans the backend image.
 ---
 
 ## 6. Code Coverage — Target vs. Measured
+Coverage is measured with `pytest --cov=src` in CI. Latest run
+[39715518771](https://github.com/yashg2006/MultiAgent/actions/runs/39715518771)
+(PR #9, commit `c146082`): **98% overall (1440 statements, 33 missed)**, against
+the CI gate of **≥ 80%**. Per-area figures are aggregated from CI's per-file
+report; the full per-file breakdown is published as a CI annotation on every run.
 
-Table below: CI run
-[39623939397](https://github.com/yashg2006/MultiAgent/actions/runs/39623939397)
-(PR #4, Phase F1). Latest: run
-[39626141696](https://github.com/yashg2006/MultiAgent/actions/runs/39626141696)
-(PR #5, Phase F2) measured **97% overall (1068 statements, 28 missed)**; the new
-modules: `src/api/` 94.2% (224 / 13), `src/worker/` 95.9% (73 / 3),
-`src/shared/db.py` 100% (78 / 0). Per-area figures are aggregated from CI's per-file report.
-
-| Module | Target | Measured (statements / missed) | Met? |
-|--------|--------|-------------------------------|------|
+| Module area | Target | Measured (statements / missed) | Met? |
+|-------------|--------|-------------------------------|------|
 | `src/orchestrator/` | ≥ 70% | 98.3% (121 / 2) | Yes |
 | `src/agents/research_agent/` | ≥ 70% | 93.2% (44 / 3) | Yes |
 | `src/agents/planner_agent/` | ≥ 70% | 97.5% (81 / 2) | Yes |
 | `src/agents/validator_agent/` | ≥ 70% | 98.4% (63 / 1) | Yes |
 | `src/agents/base.py` | — | 92.9% (14 / 1) | — |
-| `src/shared/` | ≥ 80% | 99.2% (396 / 3) | Yes |
-| `src/api/` | — | 91.7% (109 / 9) | — |
-| **Overall** | **≥ 70%** | **97.5% (828 / 21)** | **Yes** |
+| `src/shared/` | ≥ 80% | 99.2% (533 / 4) | Yes |
+| `src/api/` | — | 97.1% (489 / 14) | Yes |
+| `src/worker/` | — | 93.7% (95 / 6) | Yes |
+| **Overall** | **≥ 80%** | **98% (1440 / 33)** | **Yes** |
 
 History: 90% at the first measured run (Phase D), 95% after targeted LLM
-provider tests, 97.5% after Phase F1 (which roughly doubled the code size).
-Remaining misses are mostly defensive branches (e.g. the background-task
-crash handler in `src/api/routes.py`).
-
---------|--------|-------------------------------|------|
-| `src/orchestrator/` | ≥ 70% | 98.6% (69 / 1) | Yes |
-| `src/agents/research_agent/` | ≥ 70% | 82.4% (17 / 3) | Yes |
-| `src/agents/planner_agent/` | ≥ 70% | 87.0% (23 / 3) | Yes |
-| `src/agents/validator_agent/` | ≥ 70% | 91.4% (35 / 3) | Yes |
-| `src/agents/base.py` | — | 92.3% (13 / 1) | — |
-| `src/shared/` | ≥ 80% | 99.4% (165 / 1) | Yes |
-| `src/api/` (added in Phase D) | — | 90.5% (95 / 9) | — |
-| **Overall** | **≥ 70%** | **95.0% (417 / 21)** | **Yes** |
-
-The first measured run (before `tests/test_llm_provider.py` was added) was 90%
-overall, with `src/shared/llm_provider.py` at 48% as the weakest module; the
-targeted tests raised it to 98%. Most remaining misses are defensive
-provider-error branches inside the agents and the background-task crash
-handler in `src/api/routes.py`.
-
+provider tests, then held at 97–98% as the code roughly tripled in size across
+Phases E–F (API, worker, auth, observability). Remaining misses are mostly
+defensive branches — provider-error paths and the background-task crash handler
+in `src/api/routes.py`, and worker entry-point glue in `src/worker/main.py`.
 ---
 
 ## Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | [DD/MM/YYYY] | [Student Name 3] | Initial test plan |
+| 1.0 | _(date — fill before submission)_ | Yash Gharat | Initial test plan |
 | 1.1 | 21/10/2026 | Yash Gharat (with Claude Code) | Filled test-case results from CI; added API (§3.7a) and LLM provider (§3.7b) cases; recorded measured coverage (§6) |
 | 1.2 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase E (§3.7c) and Phase F1 (§3.7d) cases; coverage refreshed to 97.5% |
 | 1.3 | 21/10/2026 | Yash Gharat (with Claude Code) | Added Phase F2 infrastructure cases (§3.7e), incl. Postgres/Redis integration pass |

@@ -1,0 +1,79 @@
+name: Mutation Testing
+
+# Runs mutmut against small, pure, well-tested modules (retry + resilience) to
+# measure how many injected faults the test suite catches. Non-blocking; results
+# are posted to the run summary and uploaded as an artifact.
+
+on:
+  pull_request:
+    branches: ["develop", "main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "mutmut<3"
+
+      - name: Run mutation tests
+        run: |
+          # Mutate the pure retry + resilience modules; run only their unit tests
+          # (no Postgres/Redis needed), so the baseline passes and mutants are scored.
+          set +e
+          mutmut run \
+            --paths-to-mutate "src/shared/retry.py,src/shared/resilience.py" \
+            --runner "python -m pytest -x -q tests/test_retry.py tests/test_resilience.py"
+          echo "---- summary ----" | tee mutmut-results.txt
+          mutmut results 2>&1 | tee -a mutmut-results.txt
+          {
+            echo '## Mutation testing (mutmut)';
+            echo '';
+            echo 'Modules mutated: src/shared/retry.py, src/shared/resilience.py';
+            echo 'Tests run per mutant: tests/test_retry.py, tests/test_resilience.py';
+            echo '';
+            echo '```';
+            cat mutmut-results.txt;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload mutation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-results
+          path: mutmut-results.txt
+          if-no-files-found: ignore
+
+      - name: Commit mutation results to the PR branch
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          cp mutmut-results.txt /tmp/mutmut-save.txt || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${{ github.head_ref }}"
+          git checkout "${{ github.head_ref }}"
+          mkdir -p docs/results
+          cp /tmp/mutmut-save.txt docs/results/mutation.txt 2>/dev/null || true
+          git add docs/results/mutation.txt || true
+          if git diff --cached --quiet; then
+            echo "No mutation-result changes to commit."
+          else
+            git commit -m "docs: mutation testing results [skip ci]"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi

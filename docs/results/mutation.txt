@@ -1,0 +1,17 @@
+---- summary ----
+To apply a mutant on disk:
+    mutmut apply <id>
+
+To show a mutant:
+    mutmut show <id>
+
+
+Survived 🙁 (23)
+
+---- src/shared/resilience.py (8) ----
+
+35-38, 41, 48, 59-60
+
+---- src/shared/retry.py (15) ----
+
+1-2, 6-14, 17, 20, 29, 31

@@ -1,0 +1,28 @@
+%% Use-case diagram — MultiAgent AI System
+flowchart LR
+    user([User])
+    admin([Operator])
+
+    subgraph System[MultiAgent AI System]
+        uc1((Register / Log in))
+        uc2((Submit a task))
+        uc3((Watch live run trace))
+        uc4((Cancel a running task))
+        uc5((View past runs & result))
+        uc6((See usage & cost stats))
+        uc7((Scrape metrics /metrics))
+        uc8((Check readiness /ready))
+    end
+
+    user --- uc1
+    user --- uc2
+    user --- uc3
+    user --- uc4
+    user --- uc5
+    user --- uc6
+    admin --- uc7
+    admin --- uc8
+
+    uc2 -. includes .-> uc1
+    uc3 -. extends .-> uc2
+    uc4 -. extends .-> uc2

@@ -1,0 +1,21 @@
+%% Activity — task processing flow
+flowchart TD
+    start([Start]) --> recv[Receive task + user_id]
+    recv --> val{Valid & within<br/>length limit?}
+    val -- No --> err[Return 4xx error] --> stop([End])
+    val -- Yes --> plan[Planner: decompose into sub-tasks]
+    plan --> pok{Plan parsed?}
+    pok -- No --> repair[One repair retry] --> pok2{Parsed?}
+    pok2 -- No --> fail[Fail cleanly] --> stop
+    pok2 -- Yes --> level
+    pok -- Yes --> level[Next dependency level]
+    level --> research[Research sub-tasks in parallel]
+    research --> more{More levels?}
+    more -- Yes --> level
+    more -- No --> aggregate[Aggregate findings]
+    aggregate --> validate[Validator: rules + LLM judge]
+    validate --> pass{Rules pass AND<br/>score >= threshold?}
+    pass -- Yes --> done[Return final result] --> stop
+    pass -- No --> retry{Retries left?}
+    retry -- Yes --> level
+    retry -- No --> partial[Return partial result + errors] --> stop

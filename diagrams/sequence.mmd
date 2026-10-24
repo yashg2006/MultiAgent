@@ -1,0 +1,33 @@
+%% Sequence — task execution with parallel research and retry
+sequenceDiagram
+    participant U as User (SPA)
+    participant A as API
+    participant Q as Redis
+    participant W as Worker / Orchestrator
+    participant P as Planner
+    participant R as Research (pool)
+    participant V as Validator
+
+    U->>A: POST /tasks {task}
+    A->>Q: enqueue job
+    A-->>U: 201 {id, status=pending}
+    U->>A: GET /tasks/{id}/events (SSE)
+    Q->>W: deliver job
+    W->>P: AgentRequest (plan)
+    P-->>W: sub-tasks + depends_on
+    loop Each dependency level
+        par Independent sub-tasks in parallel
+            W->>R: AgentRequest (query)
+            R-->>W: findings (+usage)
+        end
+    end
+    W->>V: AgentRequest (rules + judge)
+    V-->>W: pass/fail + score
+    alt score >= threshold and rules pass
+        W-->>A: success + result
+    else fail and retries left
+        W->>R: re-run failed sub-tasks
+    else retries exhausted
+        W-->>A: partial result + errors
+    end
+    A-->>U: SSE step events, then final status + result

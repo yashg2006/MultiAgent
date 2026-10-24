@@ -7,10 +7,10 @@
 | Field | Details |
 |---|---|
 | **Document Version** | 1.0 |
-| **Date** | [DD/MM/YYYY] |
-| **Prepared By** | [Student Name 1], [Student Name 2], [Student Name 3] |
-| **Course** | [CSE XXXX] — Software Engineering |
-| **Faculty Guide** | Prof. [Faculty Name] |
+| **Date** | _(date — fill before submission)_ |
+| **Prepared By** | Dhanika Bhat, Ayushi Singh, Yash Gharat |
+| **Course** | _(course code — fill before submission)_ — Software Engineering |
+| **Faculty Guide** | Prof. _(faculty name — fill before submission)_ |
 
 ---
 
@@ -39,7 +39,6 @@ The Multi-Agent AI System is a Python-based application that uses an orchestrato
 ### 1.4 References
 
 - IEEE 830-1998, IEEE Recommended Practice for Software Requirements Specifications
-- [Additional reference]
 
 ### 1.5 Overview
 
@@ -193,9 +192,10 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 
 ### 4.1 Use Case Diagram
 
-> *[Insert Use Case Diagram — source file at `diagrams/src_diagrams/use_case.puml` or `.drawio`]*
+![Use-case diagram](assets/diagrams/use_case.png)
+
+*Source: [`diagrams/use_case.mmd`](../diagrams/use_case.mmd)*
 >
-> *![Use Case Diagram](../diagrams/exports/use_case_diagram.png)*
 
 ### 4.2 Use Case Descriptions
 
@@ -278,5 +278,5 @@ The Multi-Agent AI System is a standalone application that interacts with extern
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | [DD/MM/YYYY] | [Student Name 1] | Initial SRS draft |
+| 1.0 | _(date — fill before submission)_ | Dhanika Bhat | Initial SRS draft |
 | | | | |

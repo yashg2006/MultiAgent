@@ -1,0 +1,37 @@
+%% DFD Level 1 — decomposition
+flowchart TB
+    user([User])
+    llmapi([LLM Provider API])
+    wiki([Wikipedia API])
+
+    p1[P1 Auth & accept task]
+    p2[P2 Plan: decompose]
+    p3[P3 Research per sub-task]
+    p4[P4 Validate: rules + judge]
+    p5[P5 Aggregate & return]
+
+    d1[(Postgres: users)]
+    d2[(Postgres: tasks)]
+    d3[(Postgres: run_steps)]
+    d4[(Redis: queue + events)]
+
+    user -->|credentials| p1
+    p1 <-->|verify/create| d1
+    user -->|task string| p1
+    p1 -->|task row| d2
+    p1 -->|job| d4
+    d4 --> p2
+    p2 -->|prompt| llmapi
+    llmapi -->|sub-tasks| p2
+    p2 --> p3
+    p3 -->|query| wiki
+    wiki -->|extracts| p3
+    p3 -->|prompt| llmapi
+    llmapi -->|findings| p3
+    p3 -->|step| d3
+    p3 --> p4
+    p4 -->|judge prompt| llmapi
+    llmapi -->|score| p4
+    p4 --> p5
+    p5 -->|status + result| d2
+    p5 -->|result / errors| user

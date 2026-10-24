@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main", "develop" ]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -237,6 +240,40 @@ jobs:
           echo "::error title=E2E::Playwright end-to-end tests failed"
           docker compose -f ../docker-compose.yml logs api worker | tail -80
           exit 1
+        fi
+
+    - name: Capture UI screenshots
+      if: always()
+      working-directory: frontend
+      env:
+        BASE_URL: http://localhost:8080
+      run: |
+        mkdir -p ../docs/assets/screenshots
+        npx playwright test --config=playwright.screenshots.config.ts || \
+          echo "::warning title=Screenshots::capture step did not complete"
+        ls -la ../docs/assets/screenshots || true
+
+    - name: Upload UI screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-screenshots
+        path: docs/assets/screenshots
+        if-no-files-found: ignore
+
+    - name: Commit UI screenshots to the PR branch
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git fetch origin "${{ github.head_ref }}"
+        git checkout "${{ github.head_ref }}"
+        git add docs/assets/screenshots || true
+        if git diff --cached --quiet; then
+          echo "No screenshot changes to commit."
+        else
+          git commit -m "docs: capture UI screenshots [skip ci]"
+          git push origin "HEAD:${{ github.head_ref }}"
         fi
 
     - name: Upload Playwright report

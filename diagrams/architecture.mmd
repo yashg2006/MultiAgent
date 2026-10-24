@@ -1,0 +1,39 @@
+%% Deployment / component architecture (Docker Compose)
+flowchart TB
+    browser[React + TS SPA<br/>Vite build]
+    subgraph edge[nginx container]
+        nginx[Static assets +<br/>reverse proxy /tasks /auth /ready]
+    end
+    subgraph api[api container - FastAPI]
+        routes[Routes: tasks, auth,<br/>SSE events, cancel, stats]
+        auth[JWT httpOnly cookie auth]
+    end
+    subgraph workers[worker containers x2 - arq]
+        exec[execute_task]
+        orch[Orchestrator]
+        planner[Planner Agent]
+        research[Research Agent]
+        validator[Validator Agent]
+        llm[LLMProvider<br/>Mock / Anthropic / OpenAI]
+    end
+    redis[(Redis<br/>queue + pub/sub)]
+    postgres[(Postgres<br/>tasks, run_steps, users)]
+    prom[Prometheus]
+    graf[Grafana]
+
+    browser --> nginx
+    nginx --> routes
+    routes --> auth
+    routes -->|enqueue| redis
+    routes <-->|read/write| postgres
+    exec --> orch
+    orch --> planner --> llm
+    orch --> research --> llm
+    orch --> validator --> llm
+    redis -->|jobs| exec
+    exec -->|steps| postgres
+    exec -->|step events| redis
+    redis -->|pub/sub| routes
+    prom -->|scrape /metrics| api
+    prom -->|scrape| workers
+    graf --> prom

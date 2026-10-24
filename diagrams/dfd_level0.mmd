@@ -1,0 +1,13 @@
+%% DFD Level 0 — context diagram
+flowchart LR
+    user([User])
+    llmapi([LLM Provider API])
+    wiki([Wikipedia API])
+    sys((MultiAgent AI System))
+
+    user -- task string, auth --> sys
+    sys -- result / errors / stats --> user
+    sys -- prompts --> llmapi
+    llmapi -- completions + usage --> sys
+    sys -- search query --> wiki
+    wiki -- article extracts --> sys

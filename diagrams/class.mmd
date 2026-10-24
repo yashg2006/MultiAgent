@@ -1,0 +1,59 @@
+%% Class diagram — agent contract and pipeline
+classDiagram
+    class Agent {
+        <<abstract>>
+        +str name
+        +call_llm(prompt, system) tuple~AgentResponse, LLMUsage~
+        +execute(request: AgentRequest)* AgentResponse
+    }
+    class PlannerAgent {
+        +execute(request) AgentResponse
+    }
+    class ResearchAgent {
+        -SearchTool search
+        +execute(request) AgentResponse
+    }
+    class ValidatorAgent {
+        -float threshold
+        +execute(request) AgentResponse
+        +validate_with_usage(results, objective) tuple
+    }
+    class Orchestrator {
+        -dict~str,Agent~ agents
+        -int max_retries
+        +run(task, on_step, is_cancelled) RunResult
+        -_run_level(level, context) list
+        -_dispatch(agent_key, request) tuple
+    }
+    class AgentRequest {
+        +str objective
+        +dict payload
+    }
+    class AgentResponse {
+        +str status
+        +dict data
+        +LLMUsage usage
+    }
+    class LLMUsage {
+        +int calls
+        +int input_tokens
+        +int output_tokens
+        +float cost_usd
+        +__add__(other) LLMUsage
+    }
+    class RunResult {
+        +str status
+        +dict result
+        +int retries_used
+        +LLMUsage usage
+    }
+
+    Agent <|-- PlannerAgent
+    Agent <|-- ResearchAgent
+    Agent <|-- ValidatorAgent
+    Orchestrator o-- Agent
+    Orchestrator ..> RunResult
+    Agent ..> AgentRequest
+    Agent ..> AgentResponse
+    AgentResponse o-- LLMUsage
+    RunResult o-- LLMUsage

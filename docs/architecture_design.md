@@ -7,9 +7,9 @@
 | Field | Details |
 |---|---|
 | **Document Version** | 1.0 |
-| **Date** | [DD/MM/YYYY] |
-| **Prepared By** | [Student Name 1], [Student Name 2], [Student Name 3] |
-| **Faculty Guide** | Prof. [Faculty Name] |
+| **Date** | _(date — fill before submission)_ |
+| **Prepared By** | Dhanika Bhat, Ayushi Singh, Yash Gharat |
+| **Faculty Guide** | Prof. _(faculty name — fill before submission)_ |
 
 ---
 
@@ -17,11 +17,25 @@
 
 The Multi-Agent AI System follows an orchestrator-agent architecture in which a central Orchestrator coordinates specialised autonomous agents to decompose, execute, and validate complex tasks. This design emphasises modularity, extensibility, and separation of concerns.
 
+### 1.1 Use-Case Diagram
+
+The actors are the end **User** (submits tasks and reviews runs through the SPA)
+and the **Operator** (scrapes metrics and checks readiness for monitoring).
+Source: [`diagrams/use_case.mmd`](../diagrams/use_case.mmd).
+
+![Use-case diagram](assets/diagrams/use_case.png)
+
 ---
 
 ## 2. Architecture Diagram
 
-> *[Replace the text diagram below with a polished exported image at `diagrams/exports/architecture_diagram.png`]*
+The deployment/component architecture below is rendered from
+[`diagrams/architecture.mmd`](../diagrams/architecture.mmd) by the `Diagrams`
+CI workflow:
+
+![Architecture diagram](assets/diagrams/architecture.png)
+
+A simplified text view of the core request path:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -122,50 +136,55 @@ The Multi-Agent AI System follows an orchestrator-agent architecture in which a 
 
 ## 4. Sequence Diagram — Standard Task Execution
 
+Research sub-tasks that do not depend on one another run in parallel, one
+dependency level at a time; a failed validation retries up to `max_retries`
+before a partial result is returned. Source:
+[`diagrams/sequence.mmd`](../diagrams/sequence.mmd).
+
+![Sequence diagram](assets/diagrams/sequence.png)
+
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant O as Orchestrator
-    participant P as Planner Agent
-    participant R as Research Agent
-    participant V as Validator Agent
+    participant U as User (SPA)
+    participant A as API
+    participant Q as Redis
+    participant W as Worker / Orchestrator
+    participant P as Planner
+    participant R as Research (pool)
+    participant V as Validator
 
-    U->>O: Submit task string
-    activate O
-    O->>O: Parse task input
-
-    O->>P: AgentRequest (create plan)
-    activate P
-    P-->>O: AgentResponse (sub-task list)
-    deactivate P
-
-    loop For each sub-task in plan
-        O->>R: AgentRequest (research query)
-        activate R
-        R-->>O: AgentResponse (research results)
-        deactivate R
+    U->>A: POST /tasks {task}
+    A->>Q: enqueue job
+    A-->>U: 201 {id, status=pending}
+    U->>A: GET /tasks/{id}/events (SSE)
+    Q->>W: deliver job
+    W->>P: AgentRequest (plan)
+    P-->>W: sub-tasks + depends_on
+    loop Each dependency level
+        par Independent sub-tasks in parallel
+            W->>R: AgentRequest (query)
+            R-->>W: findings (+usage)
+        end
     end
-
-    O->>V: AgentRequest (validate aggregated results)
-    activate V
-    V-->>O: AgentResponse (pass/fail + reasons)
-    deactivate V
-
-    alt Validation passed
-        O-->>U: Final aggregated result
-    else Validation failed
-        O-->>U: Partial result with validation errors
+    W->>V: AgentRequest (rules + judge)
+    V-->>W: pass/fail + score
+    alt score >= threshold and rules pass
+        W-->>A: success + result
+    else fail and retries left
+        W->>R: re-run failed sub-tasks
+    else retries exhausted
+        W-->>A: partial result + errors
     end
-    deactivate O
+    A-->>U: SSE step events, then final status + result
 ```
 
 ---
 
 ## 5. Activity Diagram — Task Processing Flow
 
-> *[Insert activity diagram — source at `diagrams/src_diagrams/activity_diagram.puml` or `.drawio`]*
->
-> *![Activity Diagram](../diagrams/exports/activity_diagram.png)*
+Source: [`diagrams/activity.mmd`](../diagrams/activity.mmd).
+
+![Activity diagram](assets/diagrams/activity.png)
 
 **Flow Description:**
 1. **Start** → Receive user task
@@ -183,9 +202,9 @@ sequenceDiagram
 
 ### 6.1 DFD Level 0 (Context Diagram)
 
-> *[Insert DFD Level 0 — source at `diagrams/src_diagrams/dfd_level0.drawio`]*
->
-> *![DFD Level 0](../diagrams/exports/dfd_level0.png)*
+Source: [`diagrams/dfd_level0.mmd`](../diagrams/dfd_level0.mmd).
+
+![DFD Level 0](assets/diagrams/dfd_level0.png)
 
 **Entities and Flows:**
 
@@ -196,9 +215,9 @@ sequenceDiagram
 
 ### 6.2 DFD Level 1
 
-> *[Insert DFD Level 1 — source at `diagrams/src_diagrams/dfd_level1.drawio`]*
->
-> *![DFD Level 1](../diagrams/exports/dfd_level1.png)*
+Source: [`diagrams/dfd_level1.mmd`](../diagrams/dfd_level1.mmd).
+
+![DFD Level 1](assets/diagrams/dfd_level1.png)
 
 **Processes:**
 
@@ -213,66 +232,72 @@ sequenceDiagram
 
 ## 7. Class Diagram
 
+Every agent implements the abstract `Agent` contract and talks to models only
+through `Agent.call_llm()`; the Orchestrator holds its agents in a dict and
+needs no change to accept a new one (NFR-02). Source:
+[`diagrams/class.mmd`](../diagrams/class.mmd).
+
+![Class diagram](assets/diagrams/class.png)
+
 ```mermaid
 classDiagram
-    class Orchestrator {
-        -agents: list
-        -state: dict
-        +__init__()
-        +run(input_task: str) dict
-        -_dispatch(agent, request) AgentResponse
-        -_aggregate(responses) dict
+    class Agent {
+        <<abstract>>
+        +str name
+        +call_llm(prompt, system) tuple~AgentResponse, LLMUsage~
+        +execute(request: AgentRequest)* AgentResponse
     }
-
-    class ResearchAgent {
-        -config: dict
-        +__init__(config)
-        +execute(query: str) dict
-    }
-
     class PlannerAgent {
-        -config: dict
-        +__init__(config)
-        +create_plan(objective: str) list
+        +execute(request) AgentResponse
     }
-
+    class ResearchAgent {
+        -SearchTool search
+        +execute(request) AgentResponse
+    }
     class ValidatorAgent {
-        -config: dict
-        +__init__(config)
-        +validate(result_data: dict) bool
+        -float threshold
+        +execute(request) AgentResponse
+        +validate_with_usage(results, objective) tuple
     }
-
+    class Orchestrator {
+        -dict~str,Agent~ agents
+        -int max_retries
+        +run(task, on_step, is_cancelled) RunResult
+        -_run_level(level, context) list
+        -_dispatch(agent_key, request) tuple
+    }
     class AgentRequest {
-        +task_id: str
-        +prompt: str
-        +metadata: Optional~dict~
+        +str objective
+        +dict payload
     }
-
     class AgentResponse {
-        +task_id: str
-        +status: str
-        +result: Optional~dict~
-        +error: Optional~str~
+        +str status
+        +dict data
+        +LLMUsage usage
+    }
+    class LLMUsage {
+        +int calls
+        +int input_tokens
+        +int output_tokens
+        +float cost_usd
+        +__add__(other) LLMUsage
+    }
+    class RunResult {
+        +str status
+        +dict result
+        +int retries_used
+        +LLMUsage usage
     }
 
-    class Settings {
-        +app_name: str
-        +environment: str
-        +openai_api_key: str
-    }
-
-    Orchestrator "1" --> "*" ResearchAgent : dispatches to
-    Orchestrator "1" --> "*" PlannerAgent : dispatches to
-    Orchestrator "1" --> "*" ValidatorAgent : dispatches to
-
-    ResearchAgent ..> AgentRequest : consumes
-    ResearchAgent ..> AgentResponse : produces
-    PlannerAgent ..> AgentRequest : consumes
-    PlannerAgent ..> AgentResponse : produces
-    ValidatorAgent ..> AgentRequest : consumes
-    ValidatorAgent ..> AgentResponse : produces
-
-    Orchestrator ..> Settings : reads config
+    Agent <|-- PlannerAgent
+    Agent <|-- ResearchAgent
+    Agent <|-- ValidatorAgent
+    Orchestrator o-- Agent
+    Orchestrator ..> RunResult
+    Agent ..> AgentRequest
+    Agent ..> AgentResponse
+    AgentResponse o-- LLMUsage
+    RunResult o-- LLMUsage
 ```
 
 ---
@@ -306,5 +331,5 @@ The architecture is designed for easy extension:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | [DD/MM/YYYY] | [Student Name 1] | Initial architecture design |
+| 1.0 | _(date — fill before submission)_ | Dhanika Bhat | Initial architecture design |
 | | | | |
