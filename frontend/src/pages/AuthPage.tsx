@@ -50,9 +50,9 @@ export function AuthPage({ mode }: { mode: "signin" | "register" }) {
   }
 
   return (
-    <div className="grid min-h-screen font-sans text-ink lg:grid-cols-[1.1fr_1fr]">
+    <div className="grid min-h-screen font-sans text-ink md:grid-cols-[1.05fr_1fr]">
       {/* Brand panel — the product's world, hidden on small screens. */}
-      <aside className="relative hidden overflow-hidden bg-ink p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-ink p-8 lg:p-12 text-white md:flex md:flex-col md:justify-between">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-70"
@@ -89,7 +89,7 @@ export function AuthPage({ mode }: { mode: "signin" | "register" }) {
       <main className="flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm space-y-7">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex items-center gap-2 md:hidden">
               <BrandMark />
               <span className="font-display text-base font-semibold tracking-tight">
                 Multi-Agent&nbsp;Runs
