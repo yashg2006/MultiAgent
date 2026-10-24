@@ -2,6 +2,7 @@ import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router
 
 import { TaskComposer } from "./components/TaskComposer";
 import { TaskHistory } from "./components/TaskHistory";
+import { BrandMark } from "./components/BrandMark";
 import { useMe, useSignOut } from "./hooks/useAuth";
 import { AuthPage } from "./pages/AuthPage";
 import { MetricsPage } from "./pages/MetricsPage";
@@ -14,13 +15,20 @@ function Shell() {
   const location = useLocation();
 
   if (me.isPending) {
-    return <p className="p-6 font-sans text-sm text-steel">Loading…</p>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted">
+        Loading…
+      </div>
+    );
   }
   if (me.isError) {
     return (
-      <p role="alert" className="p-6 font-sans text-sm text-fail">
-        Couldn't reach the server ({me.error.message}). Check that the API is running, then reload.
-      </p>
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <p role="alert" className="max-w-sm text-sm text-fail">
+          Couldn't reach the server ({me.error.message}). Check that the API is running, then
+          reload.
+        </p>
+      </div>
     );
   }
   if (!me.data) {
@@ -28,43 +36,52 @@ function Shell() {
   }
 
   return (
-    <div className="min-h-screen bg-panel font-sans text-ink">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-6 md:grid-cols-[20rem_1fr] md:px-6 md:py-10">
-        <aside className="space-y-8 md:sticky md:top-10 md:self-start">
-          <h1 className="text-lg font-semibold">
-            <Link
-              to="/"
-              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-action"
-            >
-              Multi-Agent Runs
-            </Link>
-          </h1>
+    <div className="min-h-screen font-sans text-ink">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-6 md:grid-cols-[21rem_1fr] md:px-8 md:py-10">
+        <aside className="flex flex-col gap-7 md:sticky md:top-10 md:self-start md:max-h-[calc(100vh-5rem)]">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
+          >
+            <BrandMark />
+            <span className="font-display text-[1.05rem] font-semibold leading-none tracking-tight">
+              Multi-Agent&nbsp;Runs
+            </span>
+          </Link>
+
           <TaskComposer />
-          <section>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-steel">Past runs</h2>
+
+          <section className="min-h-0 flex-1 flex flex-col">
+            <div className="mb-2.5 flex items-baseline justify-between">
+              <h2 className="font-display text-sm font-medium text-ink">Recent runs</h2>
               <Link
                 to="/stats"
-                className="text-xs font-medium text-action underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-action"
+                className="rounded text-xs font-medium text-muted underline-offset-4 hover:text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
               >
                 Stats
               </Link>
             </div>
-            <TaskHistory />
+            <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-1">
+              <TaskHistory />
+            </div>
           </section>
-          <div className="flex items-center justify-between gap-3 border-t border-rule pt-4 text-xs text-steel">
-            <span className="truncate">{me.data.email}</span>
+
+          <div className="flex items-center justify-between gap-3 border-t border-line pt-4 text-xs text-muted">
+            <span className="truncate" title={me.data.email}>
+              {me.data.email}
+            </span>
             <button
               type="button"
               onClick={() => signOut.mutate()}
               disabled={signOut.isPending}
-              className="font-medium text-action underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-action"
+              className="shrink-0 rounded font-medium text-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
             >
               Sign out
             </button>
           </div>
         </aside>
-        <main className="min-w-0 border-t border-rule pt-8 md:border-l md:border-t-0 md:pl-8 md:pt-0">
+
+        <main className="min-w-0 border-t border-line pt-8 md:border-l md:border-t-0 md:pl-10 md:pt-0">
           <Outlet />
         </main>
       </div>

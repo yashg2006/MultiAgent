@@ -32,35 +32,54 @@ export function TaskComposer() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <label htmlFor="task" className="block text-sm font-medium text-ink">
+    <form onSubmit={onSubmit} className="space-y-2.5">
+      <label htmlFor="task" className="block font-display text-sm font-medium text-ink">
         What should the agents work on?
       </label>
-      <textarea
-        id="task"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={onKeyDown}
-        rows={4}
-        placeholder="Compare rate-monotonic and EDF scheduling for a small embedded system"
-        className="w-full resize-y rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-steel/70 focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30"
-      />
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs text-steel">Ctrl + Enter to run</span>
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="rounded-md bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {createTask.isPending ? "Starting…" : "Run task"}
-        </button>
+      <div className="group rounded-lg border border-line bg-surface shadow-card transition-colors focus-within:border-accent/60 focus-within:shadow-glow">
+        <textarea
+          id="task"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
+          rows={4}
+          placeholder="Compare rate-monotonic and EDF scheduling for a small embedded system"
+          className="block w-full resize-y rounded-t-lg bg-transparent px-3.5 py-3 text-sm leading-relaxed text-ink placeholder:text-faint focus:outline-none"
+        />
+        <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2">
+          <span className="text-2xs text-faint">
+            <kbd className="font-sans">Ctrl</kbd> + <kbd className="font-sans">Enter</kbd> to run
+          </span>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-2 rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {createTask.isPending ? (
+              <>
+                <Spinner /> Starting…
+              </>
+            ) : (
+              "Run task"
+            )}
+          </button>
+        </div>
       </div>
       {createTask.isError && (
-        <div role="alert" className="space-y-1 text-sm text-fail">
-          <p>Couldn't start the run ({createTask.error.message}).</p>
-          <p>Check that the API server is running, then try again.</p>
+        <div role="alert" className="rounded-md bg-fail-soft px-3 py-2 text-xs text-fail">
+          <p className="font-medium">Couldn't start the run ({createTask.error.message}).</p>
+          <p className="mt-0.5 text-fail/80">Check that the API server is running, then try again.</p>
         </div>
       )}
     </form>
+  );
+}
+
+function Spinner() {
+  return (
+    <span
+      aria-hidden
+      className="h-3 w-3 rounded-full border-[1.5px] border-white/40 border-t-white motion-safe:animate-spin"
+    />
   );
 }

@@ -1,25 +1,28 @@
-const STYLES: Record<string, { label: string; className: string }> = {
-  pending: { label: "Queued", className: "text-steel border-rule" },
-  running: { label: "Running", className: "text-action border-action/40" },
-  success: { label: "Passed", className: "text-ok border-ok/40" },
-  partial: { label: "Partial result", className: "text-partial border-partial/40" },
-  error: { label: "Failed", className: "text-fail border-fail/40" },
-  rejected: { label: "Rejected", className: "text-partial border-partial/40" },
-  cancelled: { label: "Cancelled", className: "text-steel border-rule" },
+const STYLES: Record<string, { label: string; className: string; dot: string }> = {
+  pending: { label: "Queued", className: "bg-sunken text-muted", dot: "bg-faint" },
+  running: { label: "Running", className: "bg-accent-soft text-accent-hover", dot: "bg-accent" },
+  success: { label: "Passed", className: "bg-ok-soft text-ok", dot: "bg-ok" },
+  partial: { label: "Partial result", className: "bg-warn-soft text-warn", dot: "bg-warn" },
+  error: { label: "Failed", className: "bg-fail-soft text-fail", dot: "bg-fail" },
+  rejected: { label: "Rejected", className: "bg-warn-soft text-warn", dot: "bg-warn" },
+  cancelled: { label: "Cancelled", className: "bg-sunken text-muted", dot: "bg-faint" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const style = STYLES[status] ?? { label: status, className: "text-steel border-rule" };
+  const style = STYLES[status] ?? {
+    label: status,
+    className: "bg-sunken text-muted",
+    dot: "bg-faint",
+  };
+  const live = status === "pending" || status === "running";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${style.className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-2xs font-medium tracking-tight ${style.className}`}
     >
-      {(status === "pending" || status === "running") && (
-        <span
-          aria-hidden
-          className="h-1.5 w-1.5 rounded-full bg-current motion-safe:animate-pulse"
-        />
-      )}
+      <span
+        aria-hidden
+        className={`h-1.5 w-1.5 rounded-full ${style.dot} ${live ? "motion-safe:animate-pulse" : ""}`}
+      />
       {style.label}
     </span>
   );

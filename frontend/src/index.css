@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: theme("colors.canvas");
+    /* A faint cool wash so the canvas has depth rather than reading as flat. */
+    background-image: radial-gradient(
+        120% 90% at 100% 0%,
+        rgba(74, 58, 236, 0.05),
+        transparent 55%
+      ),
+      radial-gradient(90% 80% at 0% 0%, rgba(14, 157, 107, 0.035), transparent 50%);
+    background-attachment: fixed;
+    color: theme("colors.ink");
+  }
+
+  ::selection {
+    background-color: theme("colors.accent.soft");
+    color: theme("colors.accent.hover");
+  }
+
+  /* Numeric data aligns in columns; mono digits keep telemetry steady. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .card {
+    @apply rounded-lg border border-line bg-surface shadow-card;
+  }
 }
